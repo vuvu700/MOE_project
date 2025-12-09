@@ -10,11 +10,36 @@ import torchvision
 import torchvision.models.resnet as RESNET
 from torchvision.transforms._presets import ImageClassification
 
+from holo.__typing import Callable, Generic, Protocol
 
 DATASETS_ROOT = pathlib.Path("./datas/")
 
 ImageTransform = typing.Callable[[Image.Image], torch.Tensor]
 # ImageClassification(**RESNET.ResNet50_Weights.IMAGENET1K_V2.transforms.keywords)
+
+
+_DatasIterator = typing.Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]
+"""yield (x, y, idx) tensors that are alredy on the device"""
+
+
+
+class DatasIterFuncs(Protocol):
+    def __call__(self, loader: DataLoader, device:torch.device) -> _DatasIterator:
+        raise NotImplementedError
+
+class CustomLoader():
+    __slots__ = ("dataloader", "iterFunc", )
+    def __init__(self, dataloader:DataLoader, iterFunc:DatasIterFuncs) -> None:
+        self.dataloader = dataloader
+        self.iterFunc = iterFunc
+    
+    def __len__(self)->int:
+        return len(self.dataloader)
+    
+    def __call__(self, device:torch.device)->_DatasIterator:
+        return self.iterFunc(self.dataloader, device=device)
+
+
 
 
 class SizedDataset(Dataset):
@@ -70,17 +95,11 @@ class ImagesClassifDataset(SizedDataset):
             yield (sample["image"].to(device), sample["class"].to(device), sample["index"])
 
 
-def iterImagesDataset(loader: DataLoader, device: torch.device,
-                      ) -> typing.Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
-    for sample in loader:
-        yield (sample["image"].to(device), sample["class"].to(device), sample["index"])
-
 
 class HandleClassifDatas():
     def __init__(self, fullDataset: SizedDataset,
                  name: str, trainProp: float, classesOffset: int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
-        # TODO
         """setup the test/train split and their dataloader based on 
             a given set of images to use (consider that the index are alredy offsetted)"""
         self.name: str = name
@@ -99,14 +118,20 @@ class HandleClassifDatas():
         loader = (self.datasLoader_train if kind == "train" else self.datasLoader_test)
         return enumerate(self.full_dataset.iterDataloader(loader=loader, device=device))
 
+    def train_cLoader(self)->CustomLoader:
+        return CustomLoader(self.datasLoader_train, self.full_dataset.iterDataloader)
+    def test_cLoader(self)->CustomLoader:
+        return CustomLoader(self.datasLoader_test, self.full_dataset.iterDataloader)
+    
 
 class HandleImagesClassifDatas(HandleClassifDatas):
+    full_dataset: ImagesClassifDataset
+    
     def __init__(self, images: list[tuple[Image.Image, ImageClass]],
                  name: str, trainProp: float, classesOffset: int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
         """setup the test/train split and their dataloader based on 
             a given set of images to use (consider that the index are alredy offsetted)"""
-        self.full_dataset: ImagesClassifDataset
         super().__init__(
             fullDataset=ImagesClassifDataset(images=images, transform=None),
             name=name, trainProp=trainProp, classesOffset=classesOffset,
@@ -114,7 +139,6 @@ class HandleImagesClassifDatas(HandleClassifDatas):
 
 
 class MNIST_Datas(HandleImagesClassifDatas):
-
     def __init__(self, fromTrainSource: bool, maxSamples: int | None,
                  trainProp: float, classesOffset: int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
