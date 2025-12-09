@@ -1,6 +1,7 @@
-import typing
 import pathlib
 import PIL.Image as Image
+from typing import (
+    Callable, Protocol, Iterator, TypedDict, Literal, )
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -10,15 +11,14 @@ import torchvision
 import torchvision.models.resnet as RESNET
 from torchvision.transforms._presets import ImageClassification
 
-from holo.__typing import Callable, Generic, Protocol
 
-DATASETS_ROOT = pathlib.Path("./datas/")
+DATASETS_ROOT = pathlib.Path("./.AI_datas/")
 
-ImageTransform = typing.Callable[[Image.Image], torch.Tensor]
+ImageTransform = Callable[[Image.Image], torch.Tensor]
 # ImageClassification(**RESNET.ResNet50_Weights.IMAGENET1K_V2.transforms.keywords)
 
 
-_DatasIterator = typing.Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]
+_DatasIterator = Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]
 """yield (x, y, idx) tensors that are alredy on the device"""
 
 
@@ -48,8 +48,7 @@ class SizedDataset(Dataset):
         raise NotImplementedError
 
     @staticmethod
-    def iterDataloader(loader: DataLoader, device: torch.device) \
-            -> typing.Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def iterDataloader(loader: DataLoader, device: torch.device)->_DatasIterator:
         """simplify the way to get the batched datas from dataloader\n
         yield (x, y, idx) tensors that are alredy on the device"""
         raise NotImplementedError
@@ -58,6 +57,11 @@ class SizedDataset(Dataset):
 class ImageClass(int):
     ...
 
+
+class ClassifDatasetOutput(TypedDict):
+    image: torch.Tensor
+    cls: ImageClass
+    index: int
 
 class ImagesClassifDataset(SizedDataset):
 
@@ -76,7 +80,7 @@ class ImagesClassifDataset(SizedDataset):
     def __len__(self):
         return len(self.images)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx)->ClassifDatasetOutput:
         assert isinstance(idx, int)
         idx = int(idx)
         transformed = self.transformed.get(idx, None)
@@ -86,13 +90,12 @@ class ImagesClassifDataset(SizedDataset):
             image, cls = self.images[idx]
             image = self.transform(image)
             self.transformed[idx] = (image, cls)
-        return {'image': image, 'class': cls, "index": idx}
+        return {'image': image, 'cls': cls, "index": idx}
 
     @staticmethod
-    def iterDataloader(loader: DataLoader, device: torch.device) \
-            -> typing.Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def iterDataloader(loader: DataLoader, device: torch.device)-> _DatasIterator:
         for sample in loader:
-            yield (sample["image"].to(device), sample["class"].to(device), sample["index"])
+            yield (sample["image"].to(device), sample["cls"].to(device), sample["index"])
 
 
 
@@ -114,7 +117,7 @@ class HandleClassifDatas():
               f"train: {len(self.dataset_train)} [{len(self.datasLoader_train)} batches] | "
               f"test: {len(self.dataset_test)} [{len(self.datasLoader_test)} batches]")
 
-    def iterDataloader(self, kind: typing.Literal["train", "test"], device: torch.device):
+    def iterDataloader(self, kind: Literal["train", "test"], device: torch.device):
         loader = (self.datasLoader_train if kind == "train" else self.datasLoader_test)
         return enumerate(self.full_dataset.iterDataloader(loader=loader, device=device))
 
@@ -143,7 +146,7 @@ class MNIST_Datas(HandleImagesClassifDatas):
                  trainProp: float, classesOffset: int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
         self.fromTrainSource: bool = fromTrainSource
-        mnist = torchvision.datasets.mnist.MNIST(
+        mnist = torchvision.datasets.MNIST(
             root=DATASETS_ROOT, train=self.fromTrainSource, download=True)
         images: list[tuple[Image.Image, ImageClass]] = []
         for (img, cls) in mnist:
@@ -152,4 +155,37 @@ class MNIST_Datas(HandleImagesClassifDatas):
             images.append((img, ImageClass(cls + classesOffset)))
         super().__init__(
             images=images, name="MNIST", trainProp=trainProp, classesOffset=classesOffset,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
+
+
+class FashionMNIST_Datas(HandleImagesClassifDatas):
+    def __init__(self, fromTrainSource: bool, maxSamples: int | None,
+                 trainProp: float, classesOffset: int,
+                 batchSizeTrain: int, batchSizeTest: int) -> None:
+        self.fromTrainSource: bool = fromTrainSource
+        mnist = torchvision.datasets.FashionMNIST(
+            root=DATASETS_ROOT, train=self.fromTrainSource, download=True)
+        images: list[tuple[Image.Image, ImageClass]] = []
+        for (img, cls) in mnist:
+            if (maxSamples is not None) and (len(images) >= maxSamples):
+                break
+            images.append((img, ImageClass(cls + classesOffset)))
+        super().__init__(
+            images=images, name="FashionMNIST", trainProp=trainProp, classesOffset=classesOffset,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
+
+class Cifar10_Datas(HandleImagesClassifDatas):
+    def __init__(self, fromTrainSource: bool, maxSamples: int | None,
+                 trainProp: float, classesOffset: int,
+                 batchSizeTrain: int, batchSizeTest: int) -> None:
+        self.fromTrainSource: bool = fromTrainSource
+        mnist = torchvision.datasets.CIFAR10(
+            root=DATASETS_ROOT, train=self.fromTrainSource, download=True)
+        images: list[tuple[Image.Image, ImageClass]] = []
+        for (img, cls) in mnist:
+            if (maxSamples is not None) and (len(images) >= maxSamples):
+                break
+            images.append((img, ImageClass(cls + classesOffset)))
+        super().__init__(
+            images=images, name="FashionMNIST", trainProp=trainProp, classesOffset=classesOffset,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
