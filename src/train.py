@@ -57,7 +57,8 @@ class HistoryClassification(list[EpochResultClassif]):
 
 
 def train_model_classif(
-        *, model, optimizer, criterion, device: torch.device,
+        *, model:torch.nn.Module, optimizer:torch.optim.Optimizer, 
+        criterion:torch.nn.Module, device: torch.device,
         datasHandler: HandleClassifDatas,
         nbEpoches: int, history: HistoryClassification | None = None) -> ResultClassif:
     return train_model_classif_base(
@@ -66,7 +67,8 @@ def train_model_classif(
         nbEpoches=nbEpoches, history=history)
 
 def train_model_classif_base(
-        *, model, optimizer, criterion, device: torch.device,
+        *, model:torch.nn.Module, optimizer:torch.optim.Optimizer, 
+        criterion:torch.nn.Module, device: torch.device,
         datasTrain: CustomLoader, datasTest:CustomLoader,
         nbEpoches: int, history: HistoryClassification | None = None) -> ResultClassif:
     if history is None:
@@ -78,8 +80,8 @@ def train_model_classif_base(
         running_accuracy = 0.0
         nbDone: int = 0
         pbar = ProgressBar.simpleConfig(
-            len(datasTrain), "train batches", newLineWhenFinished=False, updateEvery=0.2)
-        for stepIndex, (inputs, labels, _) in enumerate(datasTrain(device)):
+            len(datasTrain), "train batches", newLineWhenFinished=False, updateEvery=1/20)
+        for inputs, labels, _ in datasTrain(device):
             model.train(True)
             optimizer.zero_grad()
             outputs: torch.Tensor = model(inputs)
@@ -93,7 +95,7 @@ def train_model_classif_base(
             pbar.step(1)
         testResult = eval_model_classif(
             model=model, criterion=criterion, device=device, 
-            datas=datasTest, verbose=False)
+            datas=datasTest, verbose=True)
         meanLoss = (running_loss / len(datasTrain))
         meanAccuracy = (running_accuracy / nbDone)
         trainResult = ResultClassif(loss=meanLoss, accuracy=meanAccuracy)
@@ -104,15 +106,15 @@ def train_model_classif_base(
 
 
 def eval_model_classif(
-        *, model, criterion, device: torch.device,
-        datas: CustomLoader, verbose: bool) -> ResultClassif:
+        *, model:torch.nn.Module, criterion:torch.nn.Module, device:torch.device,
+        datas:CustomLoader, verbose:bool) -> ResultClassif:
     running_loss = 0.0
     running_accuracy = 0.0
     nbDone: int = 0
     pbar = ProgressBar.simpleConfig(
-        len(datas), "test batches", newLineWhenFinished=True, updateEvery=0.2)
+        len(datas), "test batches", newLineWhenFinished=False, updateEvery=1/20)
     model.eval()
-    for stepIndex, (inputs, labels, _) in enumerate(datas(device)):
+    for inputs, labels, _ in datas(device):
         with torch.no_grad():
             outputs: torch.Tensor = model(inputs)
         loss: torch.Tensor = criterion(outputs, labels)

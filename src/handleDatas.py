@@ -142,50 +142,50 @@ class HandleImagesClassifDatas(HandleClassifDatas):
 
 
 class MNIST_Datas(HandleImagesClassifDatas):
-    def __init__(self, fromTrainSource: bool, maxSamples: int | None,
+    def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
                  trainProp: float, classesOffset: int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
-        self.fromTrainSource: bool = fromTrainSource
-        mnist = torchvision.datasets.MNIST(
-            root=DATASETS_ROOT, train=self.fromTrainSource, download=True)
+        self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
-        for (img, cls) in mnist:
-            if (maxSamples is not None) and (len(images) >= maxSamples):
-                break
-            images.append((img, ImageClass(cls + classesOffset)))
+        for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
+            mnist = torchvision.datasets.MNIST(DATASETS_ROOT, train=src, download=True)
+            for (img, cls) in mnist:
+                if (maxSamples is not None) and (len(images) >= maxSamples):
+                    break
+                images.append((img, ImageClass(cls + classesOffset)))
         super().__init__(
             images=images, name="MNIST", trainProp=trainProp, classesOffset=classesOffset,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
 
 
 class FashionMNIST_Datas(HandleImagesClassifDatas):
-    def __init__(self, fromTrainSource: bool, maxSamples: int | None,
+    def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
                  trainProp: float, classesOffset: int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
-        self.fromTrainSource: bool = fromTrainSource
-        mnist = torchvision.datasets.FashionMNIST(
-            root=DATASETS_ROOT, train=self.fromTrainSource, download=True)
+        self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
-        for (img, cls) in mnist:
-            if (maxSamples is not None) and (len(images) >= maxSamples):
-                break
-            images.append((img, ImageClass(cls + classesOffset)))
+        for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
+            mnist = torchvision.datasets.FashionMNIST(DATASETS_ROOT, train=src, download=True)
+            for (img, cls) in mnist:
+                if (maxSamples is not None) and (len(images) >= maxSamples):
+                    break
+                images.append((img, ImageClass(cls + classesOffset)))
         super().__init__(
             images=images, name="FashionMNIST", trainProp=trainProp, classesOffset=classesOffset,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
 
 class Cifar10_Datas(HandleImagesClassifDatas):
-    def __init__(self, fromTrainSource: bool, maxSamples: int | None,
+    def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
                  trainProp: float, classesOffset: int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
-        self.fromTrainSource: bool = fromTrainSource
-        mnist = torchvision.datasets.CIFAR10(
-            root=DATASETS_ROOT, train=self.fromTrainSource, download=True)
+        self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
-        for (img, cls) in mnist:
-            if (maxSamples is not None) and (len(images) >= maxSamples):
-                break
-            images.append((img, ImageClass(cls + classesOffset)))
+        for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
+            mnist = torchvision.datasets.CIFAR10(DATASETS_ROOT, train=src, download=True)
+            for (img, cls) in mnist:
+                if (maxSamples is not None) and (len(images) >= maxSamples):
+                    break
+                images.append((img, ImageClass(cls + classesOffset)))
         super().__init__(
-            images=images, name="FashionMNIST", trainProp=trainProp, classesOffset=classesOffset,
+            images=images, name="Cifar10", trainProp=trainProp, classesOffset=classesOffset,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
