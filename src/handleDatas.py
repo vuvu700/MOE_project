@@ -101,12 +101,12 @@ class ImagesClassifDataset(SizedDataset):
 
 class HandleClassifDatas():
     def __init__(self, fullDataset: SizedDataset,
-                 name: str, trainProp: float, classesOffset: int,
+                 name: str, trainProp: float, nbClasses:int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
         """setup the test/train split and their dataloader based on 
             a given set of images to use (consider that the index are alredy offsetted)"""
         self.name: str = name
-        self.classesOffset: int = classesOffset
+        self.nbClasses: int = nbClasses
         self.full_dataset = fullDataset
         nbSamplesTrain = int(len(self.full_dataset) * trainProp)
         self.dataset_train, self.dataset_test = random_split(
@@ -130,62 +130,93 @@ class HandleClassifDatas():
 class HandleImagesClassifDatas(HandleClassifDatas):
     full_dataset: ImagesClassifDataset
     
-    def __init__(self, images: list[tuple[Image.Image, ImageClass]],
-                 name: str, trainProp: float, classesOffset: int,
-                 batchSizeTrain: int, batchSizeTest: int) -> None:
+    def __init__(self, images: list[tuple[Image.Image, ImageClass]], name: str,
+                 nbClasses: int, trainProp: float, batchSizeTrain: int, batchSizeTest: int) -> None:
         """setup the test/train split and their dataloader based on 
             a given set of images to use (consider that the index are alredy offsetted)"""
         super().__init__(
             fullDataset=ImagesClassifDataset(images=images, transform=None),
-            name=name, trainProp=trainProp, classesOffset=classesOffset,
+            name=name, trainProp=trainProp, nbClasses=nbClasses,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
 
+    @staticmethod
+    def merge(*handlers:"HandleImagesClassifDatas", trainProp:float, 
+              batchSizeTrain:int, batchSizeTest:int)->"HandleImagesClassifDatas":
+        allImages: list[tuple[Image.Image, ImageClass]] = []
+        currentNbClasses: int = 0
+        for dataset in handlers:
+            allImages.extend([
+                (img, ImageClass(clsIndex + currentNbClasses))
+                for (img, clsIndex) in dataset.full_dataset.images])
+            currentNbClasses += dataset.nbClasses
+        return HandleImagesClassifDatas(
+            images=allImages, nbClasses=currentNbClasses,
+            name=f"Merged[{', '.join([dts.name for dts in handlers])}]",
+            trainProp=trainProp, batchSizeTrain=batchSizeTrain,
+            batchSizeTest=batchSizeTest)
+
+
+    
 
 class MNIST_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
-                 trainProp: float, classesOffset: int,
+                 trainProp: float,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
         self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
-            mnist = torchvision.datasets.MNIST(DATASETS_ROOT, train=src, download=True)
-            for (img, cls) in mnist:
+            datas = torchvision.datasets.MNIST(DATASETS_ROOT, train=src, download=True)
+            for (img, clsIndex) in datas:
                 if (maxSamples is not None) and (len(images) >= maxSamples):
                     break
-                images.append((img, ImageClass(cls + classesOffset)))
+                images.append((img, ImageClass(clsIndex)))
         super().__init__(
-            images=images, name="MNIST", trainProp=trainProp, classesOffset=classesOffset,
+            images=images, name="MNIST", trainProp=trainProp, nbClasses=10,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
 
 
 class FashionMNIST_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
-                 trainProp: float, classesOffset: int,
-                 batchSizeTrain: int, batchSizeTest: int) -> None:
+                 trainProp: float, batchSizeTrain: int, batchSizeTest: int) -> None:
         self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
-            mnist = torchvision.datasets.FashionMNIST(DATASETS_ROOT, train=src, download=True)
-            for (img, cls) in mnist:
+            datas = torchvision.datasets.FashionMNIST(DATASETS_ROOT, train=src, download=True)
+            for (img, clsIndex) in datas:
                 if (maxSamples is not None) and (len(images) >= maxSamples):
                     break
-                images.append((img, ImageClass(cls + classesOffset)))
+                images.append((img, ImageClass(clsIndex)))
         super().__init__(
-            images=images, name="FashionMNIST", trainProp=trainProp, classesOffset=classesOffset,
+            images=images, name="FashionMNIST", trainProp=trainProp, nbClasses=10,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
 
 class Cifar10_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
-                 trainProp: float, classesOffset: int,
-                 batchSizeTrain: int, batchSizeTest: int) -> None:
+                 trainProp: float, batchSizeTrain: int, batchSizeTest: int) -> None:
         self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
-            mnist = torchvision.datasets.CIFAR10(DATASETS_ROOT, train=src, download=True)
-            for (img, cls) in mnist:
+            datas = torchvision.datasets.CIFAR10(DATASETS_ROOT, train=src, download=True)
+            for (img, clsIndex) in datas:
                 if (maxSamples is not None) and (len(images) >= maxSamples):
                     break
-                images.append((img, ImageClass(cls + classesOffset)))
+                images.append((img, ImageClass(clsIndex)))
         super().__init__(
-            images=images, name="Cifar10", trainProp=trainProp, classesOffset=classesOffset,
+            images=images, name="Cifar10", trainProp=trainProp, nbClasses=10,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
+
+class Cifar100_Datas(HandleImagesClassifDatas):
+    def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
+                 trainProp: float, batchSizeTrain: int, batchSizeTest: int) -> None:
+        self.fromTrainSource: bool|None = fromTrainSource
+        images: list[tuple[Image.Image, ImageClass]] = []
+        for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
+            datas = torchvision.datasets.CIFAR100(DATASETS_ROOT, train=src, download=True)
+            for (img, clsIndex) in datas:
+                if (maxSamples is not None) and (len(images) >= maxSamples):
+                    break
+                images.append((img, ImageClass(clsIndex)))
+        super().__init__(
+            images=images, name="Cifar100", trainProp=trainProp, nbClasses=100,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
+

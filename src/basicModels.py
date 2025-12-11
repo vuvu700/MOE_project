@@ -74,24 +74,25 @@ class BasicImageClassifModel(torch.nn.Module):
         return x
     
     @staticmethod
-    def get_MNIST(device:torch.device,
+    def get_MNIST_like_28x28x1(
+            device:torch.device, nbClasses:int,
             modelConfig:typing.Literal["small", "medium", "large"], **kwargs):
         if modelConfig == "large":
             model = BasicImageClassifModel(
                 layers=[(16, True, False, False), (32, True, True, True),
                         (32, True, False, False), (64, True, False, False), 
                         (128, True, False, True), (128, True, True, True), ],
-                nbChanels=1, nbClasses=10, botleneckShape=(3,3), **kwargs)
+                nbChanels=1, nbClasses=nbClasses, botleneckShape=(3,3), **kwargs)
         elif modelConfig == "medium":
             model = BasicImageClassifModel(
                 layers=[(16, True, False, True), (24, True, True, True),
                         (32, True, False, False), (48, True, False, True), ],
-                nbChanels=1, nbClasses=10, botleneckShape=(3,3), **kwargs)
+                nbChanels=1, nbClasses=nbClasses, botleneckShape=(3,3), **kwargs)
         elif modelConfig == "small":
             model = BasicImageClassifModel(
                 layers=[(8, True, False, True), (16, True, True, True),
                         (24, True, False, False), (32, True, False, True), ],
-                nbChanels=1, nbClasses=10, botleneckShape=(3,3), **kwargs)
+                nbChanels=1, nbClasses=nbClasses, botleneckShape=(3,3), **kwargs)
         else: 
             raise ValueError(f"unknown {modelConfig = }")
         model.to(device)
@@ -100,29 +101,30 @@ class BasicImageClassifModel(torch.nn.Module):
         return (model, optim, loss)
     
     @staticmethod
-    def get_Cifar10(
-            device:torch.device,
+    def get_Cifar_like_32x32x3(
+            device:torch.device, nbClasses:int,
             modelConfig:typing.Literal["small", "medium", "large"], **kwargs):
         if modelConfig == "large":
             model = BasicImageClassifModel(
                 layers=[(64, True, False, False), (128, True, True, True),
                         (128, True, False, False), (128, True, False, False), 
                         (256, True, False, True), (512, True, True, True), ],
-                nbChanels=3, nbClasses=10, botleneckShape=(4,4), **kwargs)
+                nbChanels=3, nbClasses=nbClasses, botleneckShape=(4,4), **kwargs)
         elif modelConfig == "medium":
             model = BasicImageClassifModel(
                 layers=[(16, True, False, False), (32, True, True, True),
                         (32, True, False, False), (64, True, False, False), 
                         (128, True, False, True), (256, True, True, True), ],
-                nbChanels=3, nbClasses=10, botleneckShape=(4,4), **kwargs)
+                nbChanels=3, nbClasses=nbClasses, botleneckShape=(4,4), **kwargs)
         elif modelConfig == "small":
             model = BasicImageClassifModel(
                 layers=[(16, True, False, True), (24, True, True, True),
                         (32, True, False, False), (48, True, False, True), ],
-                nbChanels=3, nbClasses=10, botleneckShape=(4,4), **kwargs)
+                nbChanels=3, nbClasses=nbClasses, botleneckShape=(4,4), **kwargs)
         else: 
             raise ValueError(f"unknown {modelConfig = }")
         model.to(device)
         optim = torch.optim.AdamW(model.parameters(), lr=0.001)
         loss = torch.nn.CrossEntropyLoss().to(device)
         return (model, optim, loss)
+    
