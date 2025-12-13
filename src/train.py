@@ -266,7 +266,8 @@ class TrainerClassif_MoE1(TrainerClassif):
     def __init__(
             self, model:MoE_models.paper1.MOE_Model, optimizer:torch.optim.Optimizer,
             criterion:torch.nn.Module, device:torch.device) -> None:
-        super().__init__(model=model, optimizer=optimizer, criterion=criterion, device=device)
+        super().__init__(
+            model=model, optimizer=optimizer, criterion=criterion, device=device)
         self.__current_expertsOuts: numpy.ndarray|None = None
         self.__current_gating: numpy.ndarray|None = None
         
@@ -276,8 +277,7 @@ class TrainerClassif_MoE1(TrainerClassif):
         outputs, expertsOuts, gating = self.model(inputs)
         self.__current_expertsOuts = expertsOuts.detach().cpu().numpy()
         self.__current_gating = gating.detach().cpu().numpy()
-        loss: torch.Tensor = self.model.applyLossCE(
-            expertsOuts, gating, labels)
+        loss: torch.Tensor = self.model.applyLossAll(expertsOuts, gating, labels)
         return (outputs, loss)
     
     def computeMoeMetrics(
