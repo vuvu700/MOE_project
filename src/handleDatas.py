@@ -12,7 +12,7 @@ import torchvision.models.resnet as RESNET
 from torchvision.transforms._presets import ImageClassification
 
 
-DATASETS_ROOT = pathlib.Path("./.AI_datas/")
+DATASETS_ROOT = pathlib.Path("D:/AI_datas")
 
 ImageTransform = Callable[[Image.Image], torch.Tensor]
 # ImageClassification(**RESNET.ResNet50_Weights.IMAGENET1K_V2.transforms.keywords)

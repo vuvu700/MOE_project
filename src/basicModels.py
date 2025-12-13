@@ -6,7 +6,6 @@ from prettytable import PrettyTable
 
 
 
-
 ################# utils #################
 
 def countLayersparameters(model: torch.nn.Module):
@@ -127,4 +126,17 @@ class BasicImageClassifModel(torch.nn.Module):
         optim = torch.optim.AdamW(model.parameters(), lr=0.001)
         loss = torch.nn.CrossEntropyLoss().to(device)
         return (model, optim, loss)
+    
+    @staticmethod
+    def get_Cifar_like_32x32x3_moe(
+            device:torch.device, nbClasses:int, nbExperts:int,
+            expertsModelConfig:typing.Literal["small", "medium", "large"],
+            gatingModelConfig:typing.Literal["small", "medium", "large"]):
+        allExperts: list[BasicImageClassifModel] = [
+            BasicImageClassifModel.get_Cifar_like_32x32x3(
+                device=device, nbClasses=nbClasses, modelConfig=expertsModelConfig)[0]
+            for _ in range(nbExperts)]
+        gatingModel, _, loss = BasicImageClassifModel.get_Cifar_like_32x32x3(
+            device=device, nbClasses=nbExperts, modelConfig=gatingModelConfig)
+        return (gatingModel, allExperts, loss)
     

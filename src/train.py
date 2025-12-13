@@ -7,15 +7,50 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 
 from handleDatas import CustomLoader, HandleClassifDatas
+import MoE_models.paper1
 
 from holo.profilers import ProgressBar, Profiler
-from holo.prettyFormats import SingleLinePrinter
+from holo.prettyFormats import prettyPrint, prettyTime
 
+
+class MoeExpertsInsigths():
+    ...
+
+@attrs.define
+class Moe1ExpertsInsigths(MoeExpertsInsigths):
+    sumExpertsGate: numpy.ndarray[tuple[int, ], numpy.dtype[numpy.float64]]
+    """(row: experts) -> mean gate of the experts overall"""
+    sumPredClassesExpertsGate: numpy.ndarray[tuple[int, int, ], numpy.dtype[numpy.float64]]
+    """(row: class, col: experts) -> mean gate of the experts when this was predicted"""
+    nbPred: numpy.ndarray[tuple[int, ], numpy.dtype[numpy.int64]]
+    """(row: class) -> nb of time the class was prdicted"""
+    sumTrueClassesExpertsGate: numpy.ndarray[tuple[int, int, ], numpy.dtype[numpy.float64]]
+    """(row: class, col: experts) -> mean gate of the experts when this was the label"""
+    nbTruth: numpy.ndarray[tuple[int, ], numpy.dtype[numpy.int64]]
+    """(row: class) -> nb of time the class was the label"""
+    
+    def meanExpertsGate(self):
+        return (self.sumExpertsGate / float(self.nbPred.sum()))
+    def meanPredClassesExpertsGate(self):
+        return (self.sumPredClassesExpertsGate / self.nbPred[..., None])
+    def meanTruthClassesExpertsGate(self):
+        return (self.sumTrueClassesExpertsGate / self.nbPred[..., None])
+    
+    
+    @staticmethod
+    def empty(nbExperts:int, nbClasses:int)->"Moe1ExpertsInsigths":
+        return Moe1ExpertsInsigths(
+            sumExpertsGate=numpy.zeros((nbExperts, )),
+            sumPredClassesExpertsGate=numpy.zeros((nbClasses, nbExperts, )),
+            sumTrueClassesExpertsGate=numpy.zeros((nbClasses, nbExperts, )),
+            nbPred=numpy.zeros((nbClasses, ), dtype=numpy.int64), 
+            nbTruth=numpy.zeros((nbClasses, ), dtype=numpy.int64))
 
 @attrs.frozen
 class ResultClassif():
     loss: float
     confusionMatrix: "ConfusionMatrix"
+    moeExpertsInsigths: "MoeExpertsInsigths|None"
     
     def accuracy(self)->float:
         return self.confusionMatrix.accuracy()
@@ -106,70 +141,164 @@ class ConfusionMatrix():
             self.matrix[pred, truth] += 1
 
 
+class TrainerClassif():
+    
+    def __init__(
+            self, model:torch.nn.Module, optimizer:torch.optim.Optimizer,
+            criterion:torch.nn.Module, device:torch.device) -> None:
+        self.model: torch.nn.Module = model
+        self.optimizer: torch.optim.Optimizer = optimizer
+        self.criterion: torch.nn.Module = criterion
+        self.device: torch.device = device
+        self.updateEvery: float = (1/20)
+        self.history = HistoryClassification()
+    
+    def train_model_classif(
+            self, *, datasHandler:HandleClassifDatas, nbEpoches:int,
+            history:HistoryClassification|None = None)->ResultClassif:
+        return self.train_model_classif_base(
+            datasTrain=datasHandler.train_cLoader(), 
+            datasTest=datasHandler.test_cLoader(),
+            nbClasses=datasHandler.nbClasses, 
+            nbEpoches=nbEpoches)
 
-def train_model_classif(
-        *, model:torch.nn.Module, optimizer:torch.optim.Optimizer, 
-        criterion:torch.nn.Module, device: torch.device,
-        datasHandler: HandleClassifDatas,
-        nbEpoches: int, history: HistoryClassification | None = None) -> ResultClassif:
-    return train_model_classif_base(
-        model=model, optimizer=optimizer, criterion=criterion, device=device,
-        datasTrain=datasHandler.train_cLoader(), datasTest=datasHandler.test_cLoader(),
-        nbClasses=datasHandler.nbClasses, nbEpoches=nbEpoches, history=history)
-
-def train_model_classif_base(
-        *, model:torch.nn.Module, optimizer:torch.optim.Optimizer, 
-        criterion:torch.nn.Module, device: torch.device,
-        datasTrain: CustomLoader, datasTest:CustomLoader, nbClasses:int,
-        nbEpoches: int, history: HistoryClassification | None = None) -> ResultClassif:
-    if history is None:
-        history = HistoryClassification()
-    assert nbEpoches > 0
-    startEpochID: int = (0 if len(history) == 0 else history[-1].epochID)
-    for epochID in range(startEpochID+1, (startEpochID+1+nbEpoches)):
+    def train_model_classif_base(
+            self, *, datasTrain: CustomLoader, datasTest:CustomLoader, 
+            nbClasses:int, nbEpoches:int)->ResultClassif:
+        assert nbEpoches > 0
+        _prof = Profiler([
+            "all", "getBatch", "predict+loss", "backward", "step", 
+            "metrics_base", "metrics_moe", "evaluate", "progressBar", ])
+        startEpochID: int = (0 if len(self.history) == 0 else self.history[-1].epochID)
+        with _prof.mesure("all"):
+            for epochID in range(startEpochID+1, (startEpochID+1+nbEpoches)):
+                running_loss = 0.0
+                trainConfMatrix = ConfusionMatrix(nbClasses=nbClasses)
+                moeExpertsInsigths: "MoeExpertsInsigths|None" = None
+                pbar = self._getPBar(len(datasTrain), "train batches")
+                self.model.train()
+                trainDatasIterator = iter(datasTrain(self.device))
+                while True:
+                    try:
+                        with _prof.mesure("getBatch"):
+                            inputs, labels, _ = next(trainDatasIterator)
+                    except StopIteration: break
+                    self.optimizer.zero_grad()
+                    with _prof.mesure("predict+loss"):
+                        outputs, loss = self.forwardAndLoss(inputs, labels)
+                    with _prof.mesure("backward"):
+                        loss.backward()
+                    with _prof.mesure("step"):
+                        self.optimizer.step()
+                    with _prof.mesure("metrics_base"):
+                        running_loss += loss.item()
+                        predLabels = torch.argmax(outputs.detach(), dim=-1)
+                        trainConfMatrix.step(
+                            predLabels=predLabels.tolist(), truthLabels=labels.tolist())
+                    with _prof.mesure("metrics_moe"):
+                        moeExpertsInsigths = self.computeMoeMetrics(
+                            moeExpertsInsigths, outputs, labels)
+                    with _prof.mesure("progressBar"):
+                        pbar.step(1)
+                self.model.eval()
+                with _prof.mesure("evaluate"):
+                    testResult = self.eval_model_classif(
+                        datas=datasTest, nbClasses=nbClasses, verbose=True)
+                meanLoss = (running_loss / len(datasTrain))
+                trainResult = ResultClassif(
+                    loss=meanLoss, confusionMatrix=trainConfMatrix, 
+                    moeExpertsInsigths=moeExpertsInsigths)
+                self.history.append(EpochResultClassif(
+                    epochID, trainResult, testResult,
+                    lr=self.optimizer.param_groups[0]['lr']))
+                print(self.history[-1])
+        # show the time it took
+        tt = _prof.totalMesure("all")
+        times = _prof.totalTimes()
+        times["other"] = tt - (sum(times.values()) - tt) # type: ignore
+        prettyPrint(times, specificFormats={float: lambda x: f"{x/tt:.2%}"})
+        return self.history[-1].train
+    
+    def eval_model_classif(
+            self, *, datas:CustomLoader, nbClasses:int, 
+            verbose:bool) -> ResultClassif:
         running_loss = 0.0
-        trainConfMatrix = ConfusionMatrix(nbClasses=nbClasses)
-        pbar = ProgressBar.simpleConfig(
-            len(datasTrain), "train batches", newLineWhenFinished=False, updateEvery=1/20)
-        for inputs, labels, _ in datasTrain(device):
-            model.train(True)
-            optimizer.zero_grad()
-            outputs: torch.Tensor = model(inputs)
-            loss: torch.Tensor = criterion(outputs, labels)
-            loss.backward()
-            model.eval()
-            optimizer.step()
+        confMatrix = ConfusionMatrix(nbClasses=nbClasses)
+        moeExpertsInsigths: "MoeExpertsInsigths|None" = None
+        pbar = self._getPBar(len(datas), "test batches")
+        self.model.eval()
+        for inputs, labels, _ in datas(self.device):
+            with torch.no_grad():
+                outputs, loss = self.forwardAndLoss(inputs, labels)
             running_loss += loss.item()
             predLabels = torch.argmax(outputs.detach(), dim=-1)
-            trainConfMatrix.step(predLabels=predLabels.tolist(), truthLabels=labels.tolist())
-            pbar.step(1)
-        testResult = eval_model_classif(
-            model=model, criterion=criterion, device=device, 
-            datas=datasTest, nbClasses=nbClasses, verbose=True)
-        meanLoss = (running_loss / len(datasTrain))
-        trainResult = ResultClassif(loss=meanLoss, confusionMatrix=trainConfMatrix)
-        history.append(EpochResultClassif(
-            epochID, trainResult, testResult, lr=optimizer.param_groups[0]['lr']))
-        print(history[-1])
-    return history[-1].train
+            confMatrix.step(predLabels=predLabels.tolist(), truthLabels=labels.tolist())
+            moeExpertsInsigths = self.computeMoeMetrics(
+                moeExpertsInsigths, outputs, labels)
+            if verbose is True:
+                pbar.step()
+        meanLoss = (running_loss / len(datas))
+        return ResultClassif(
+            loss=meanLoss, confusionMatrix=confMatrix,
+            moeExpertsInsigths=moeExpertsInsigths)
+    
+    def forwardAndLoss(
+            self, inputs:torch.Tensor, labels:torch.Tensor,
+            ) -> tuple[torch.Tensor, torch.Tensor]:
+        outputs: torch.Tensor = self.model(inputs)
+        loss: torch.Tensor = self.criterion(outputs, labels)
+        return (outputs, loss)
+
+    def computeMoeMetrics(
+            self, currentInsigths:MoeExpertsInsigths|None,
+            outputs:torch.Tensor, labels:torch.Tensor) -> MoeExpertsInsigths|None:
+        return None
+
+    def _getPBar(self, nb:int, name:str)->ProgressBar:
+        return ProgressBar.simpleConfig(
+            nb, name, newLineWhenFinished=False, updateEvery=self.updateEvery)
 
 
-def eval_model_classif(
-        *, model:torch.nn.Module, criterion:torch.nn.Module, device:torch.device,
-        datas:CustomLoader, nbClasses:int, verbose:bool) -> ResultClassif:
-    running_loss = 0.0
-    confMatrix = ConfusionMatrix(nbClasses=nbClasses)
-    pbar = ProgressBar.simpleConfig(
-        len(datas), "test batches", newLineWhenFinished=False, updateEvery=1/20)
-    model.eval()
-    for inputs, labels, _ in datas(device):
-        with torch.no_grad():
-            outputs: torch.Tensor = model(inputs)
-        loss: torch.Tensor = criterion(outputs, labels)
-        running_loss += loss.item()
-        predLabels = torch.argmax(outputs.detach(), dim=-1)
-        confMatrix.step(predLabels=predLabels.tolist(), truthLabels=labels.tolist())
-        if verbose is True:
-            pbar.step()
-    meanLoss = (running_loss / len(datas))
-    return ResultClassif(loss=meanLoss, confusionMatrix=confMatrix)
+
+class TrainerClassif_MoE1(TrainerClassif):
+    model:MoE_models.paper1.MOE_Model
+    
+    def __init__(
+            self, model:MoE_models.paper1.MOE_Model, optimizer:torch.optim.Optimizer,
+            criterion:torch.nn.Module, device:torch.device) -> None:
+        super().__init__(model=model, optimizer=optimizer, criterion=criterion, device=device)
+        self.__current_expertsOuts: numpy.ndarray|None = None
+        self.__current_gating: numpy.ndarray|None = None
+        
+    def forwardAndLoss(
+            self, inputs:torch.Tensor, labels:torch.Tensor
+            )->tuple[torch.Tensor, torch.Tensor]:
+        outputs, expertsOuts, gating = self.model(inputs)
+        self.__current_expertsOuts = expertsOuts.detach().cpu().numpy()
+        self.__current_gating = gating.detach().cpu().numpy()
+        loss: torch.Tensor = self.model.applyLossCE(
+            expertsOuts, gating, labels)
+        return (outputs, loss)
+    
+    def computeMoeMetrics(
+            self, currentInsigths:MoeExpertsInsigths|None,
+            outputs:torch.Tensor, labels:torch.Tensor) -> MoeExpertsInsigths|None:
+        assert self.__current_expertsOuts is not None
+        assert self.__current_gating is not None
+        batchSize, nbClasses, nbExperts  = self.__current_expertsOuts.shape
+        if currentInsigths is None:
+            currentInsigths = Moe1ExpertsInsigths.empty(
+                nbExperts=nbExperts, nbClasses=nbClasses)
+        assert isinstance(currentInsigths, Moe1ExpertsInsigths)
+        npLabels = labels.cpu().numpy()
+        npPredLabels = torch.argmax(outputs.detach(), dim=-1).cpu().numpy()
+        predClassCount = numpy.bincount(npPredLabels, minlength=nbClasses)
+        truthClassCount = numpy.bincount(npLabels, minlength=nbClasses)
+        currentInsigths.sumExpertsGate += self.__current_gating.sum(axis=0)
+        currentInsigths.nbPred += predClassCount
+        currentInsigths.nbTruth += truthClassCount
+        for iBatch in range(batchSize):
+            gates = self.__current_gating[iBatch, :]
+            currentInsigths.sumPredClassesExpertsGate[npPredLabels[iBatch], :] += gates
+            currentInsigths.sumTrueClassesExpertsGate[npLabels[iBatch], :] += gates
+        return currentInsigths
