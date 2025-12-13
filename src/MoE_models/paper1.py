@@ -8,8 +8,8 @@ import typing
 
 class MOE_Model(torch.nn.Module):
     def __init__(
-            self, experts:typing.Sequence[torch.nn.Module],
-            gatingModel:torch.nn.Module, isClassif:bool, **kwargs) -> None:
+            self, experts:typing.Sequence[torch.nn.Module], gatingModel:torch.nn.Module,
+            isClassif:bool, myLoss:bool, **kwargs) -> None:
         """create the MoE model with the given experts and gating\n
         `experts` and `gatingModel` must take the same input, 
         `experts` must all give the same output: (batchSize, nbOuts),
@@ -21,6 +21,7 @@ class MOE_Model(torch.nn.Module):
         for i, expert in enumerate(experts):
             self.add_module(f"expert[{i}]", expert)
             self.experts.append(expert)
+        self.myLoss: bool = myLoss
         
     @property
     def nbExperts(self)->int:
@@ -58,21 +59,22 @@ class MOE_Model(torch.nn.Module):
             expertsLogits = torch.softmax(expertsLogits, dim=1)
         return (gatingOutput[:, None, :] * expertsLogits).sum(dim=2)
     
-    @staticmethod
-    def _genericApplyLoss(expertsLoss:torch.Tensor, gatingOutput:torch.Tensor)->torch.Tensor:
+    def _genericApplyLoss(self, expertsLoss:torch.Tensor, gatingOutput:torch.Tensor)->torch.Tensor:
         """return the loss with the generic formula computed\
          for each element of the batch (don't reduce)\n
         `expertsLoss`: (batchSize, nbExperts)\n
         `gatingOutput`: (batchSize, nbExperts)\n"""
-        meanGate = gatingOutput.mean(dim=0)
-        """shape: (nbExperts, ) mean gate activation of experts over the batch"""
-        gateLoss = torch.pow(meanGate - float(1 / meanGate.shape[0]), 2.0).mean()
-        return gateLoss - torch.log((gatingOutput * torch.exp(-0.5 * expertsLoss)).sum(dim=1)).mean()
+        loss = - torch.log((gatingOutput * torch.exp(-0.5 * expertsLoss)).sum(dim=1)).mean()
+        if self.myLoss is True:
+            meanGate = gatingOutput.mean(dim=0)
+            """shape: (nbExperts, ) mean gate activation of experts over the batch"""
+            gateLoss = torch.pow(meanGate - float(1 / meanGate.shape[0]), 2.0).mean()
+            loss += gateLoss
+        return loss
     
-    @staticmethod
     def applyLossCE(
-            mergedExpertsOutputs:torch.Tensor, gatingOutput:torch.Tensor,
-            truthLabels:torch.Tensor)->torch.Tensor:
+            self, mergedExpertsOutputs:torch.Tensor, 
+            gatingOutput:torch.Tensor, truthLabels:torch.Tensor)->torch.Tensor:
         """`mergedExpertsOutputs`: (batchSize, nbClasses, nbExperts)\n
         `gatingOutput`: (batchSize, nbExperts)\n
         `truthLabels`: (batchSize, ) with the index of the label to predict\n
@@ -88,6 +90,6 @@ class MOE_Model(torch.nn.Module):
         """shape: (batchSize * nbExperts)"""
         expertsCE = flatExpertsCE.reshape(batchSize, nbExperts)
         """shape: (batchSize, nbExperts)"""
-        return MOE_Model._genericApplyLoss(
+        return self._genericApplyLoss(
             expertsLoss=expertsCE, gatingOutput=gatingOutput)
 

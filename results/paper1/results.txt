@@ -130,6 +130,22 @@ moe model 1 (gating:small, experts: 12 x small)
         getBatch: 1.82%, predict+loss: 33.40%, backward: 53.09%, step: 2.61%,
         metrics_base: 0.40%, metrics_moe: 0.00%, evaluate: 7.40%,
         progressBar: 1.01%, other: 0.27%
+    experts gates (tests):
+        mean: [0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.] (std: 0.276)
+        std: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.] (mean: 0.0)
+        perClassPred: 
+          [[0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]]
 
 
 moe model 2 (gating:small, experts: 6 x small)
@@ -171,7 +187,17 @@ moe model 2 (gating:small, experts: 6 x small)
         getBatch: 3.05%, predict+loss: 32.23%, backward: 52.08%, step: 2.97%,
         metrics_base: 0.67%, metrics_moe: 0.00%, evaluate: 7.68%,
         progressBar: 0.97%, other: 0.35%
-
+    experts gates (tests):
+        mean: [0. 0. 0. 0. 0. 1.] (std: 0.373)
+        std: [0. 0. 0. 0. 0. 0.] (mean: 0.0)
+        perClassPred: 
+          [[0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]]
+        
 
 moe model 3 (gating:medium, experts: 6 x small)
     -> nb parameters: total(620_658), gating(426_486), experts(6 x 32_362)
@@ -233,6 +259,14 @@ moe model 4 (gating:small, experts: 4 x medium)
         getBatch: 2.31%, predict+loss: 29.73%, backward: 56.30%, step: 2.33%, 
         metrics_base: 0.49%, metrics_moe: 0.00%, evaluate: 7.20%,
         progressBar: 1.36%, other: 0.27%
+    experts gates (tests):
+        mean: [1. 0. 0. 0.] (std: 0.433)
+        std: [0.001 0.    0.    0.   ] (mean: 0.0)
+        perClassPred: 
+          [[1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]]
 
 
 moe model 5 (gating:medium, experts: 4 x medium)
@@ -254,6 +288,14 @@ moe model 5 (gating:medium, experts: 4 x medium)
         getBatch: 2.14%, predict+loss: 29.54%, backward: 57.13%, step: 2.19%, 
         metrics_base: 0.44%, metrics_moe: 0.00%, evaluate: 7.00%,
         progressBar: 1.31%, other: 0.25%
+    experts gates (tests):
+        mean: [0. 0. 0. 1.] (std: 0.433)
+        std: [0. 0. 0. 0.] (mean: 0.0)
+        perClassPred: 
+          [[0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+           [1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]]
 
 
 moe model 6 (gating:small, experts: 4 x large)
@@ -344,16 +386,15 @@ moe2 model 1 (gating:small, experts: 6 x small)
         metrics_base: 0.62%, metrics_moe: 1.90%, evaluate: 7.96%, 
         progressBar: 0.86%, other: 0.33%
     experts gates (tests):
-        mean: [0.13 0.18 0.17 0.08 0.2  0.23]
-        varianceOfExpertsPerClass:
-          [0.16 0.19 0.13 0.15 0.15 0.14 0.2  0.13 0.13 0.16]
-        perClasses:
-            [[0.09 0.37 0.07 0.06 0.02 0.13 0.02 0.14 0.14 0.28]
-             [0.12 0.49 0.04 0.07 0.08 0.05 0.03 0.24 0.22 0.45]
-             [0.01 0.03 0.16 0.21 0.3  0.19 0.38 0.4  0.   0.09]
-             [0.37 0.01 0.07 0.   0.02 0.   0.   0.   0.32 0.  ]
-             [0.39 0.11 0.26 0.21 0.16 0.2  0.07 0.12 0.31 0.18]
-             [0.01 0.   0.4  0.45 0.43 0.43 0.5  0.1  0.   0.  ]]
+        mean: [0.237 0.142 0.176 0.201 0.086 0.159] (std: 0.047)
+        std: [0.154 0.11  0.188 0.245 0.093 0.083] (mean: 0.146)
+        perClassPred: 
+          [[0.05 0.08 0.24 0.42 0.24 0.38 0.21 0.53 0.05 0.18]
+           [0.05 0.34 0.15 0.18 0.03 0.33 0.02 0.1  0.08 0.11]
+           [0.38 0.34 0.05 0.02 0.03 0.   0.   0.06 0.53 0.32]
+           [0.02 0.03 0.3  0.07 0.65 0.12 0.68 0.18 0.   0.01]
+           [0.31 0.06 0.08 0.06 0.01 0.06 0.   0.01 0.22 0.04]
+           [0.19 0.15 0.18 0.25 0.05 0.1  0.09 0.12 0.12 0.34]]
  
 
 moe2 model 2 (gating:small, experts: 4 x medium)
@@ -376,14 +417,13 @@ moe2 model 2 (gating:small, experts: 4 x medium)
         metrics_base: 0.46%, metrics_moe: 1.43%, evaluate: 7.47%, 
         progressBar: 1.21%, other: 0.26%
     experts gates (tests):
-        mean: [0.13 0.18 0.17 0.08 0.2  0.23]
-        varianceOfExpertsPerClass: 
-          [0.19 0.12 0.1  0.15 0.16 0.17 0.2  0.14 0.18 0.18]
-        expertsPerClasses:
-            [[0.56 0.09 0.14 0.05 0.04 0.02 0.01 0.02 0.53 0.07]
-             [0.06 0.22 0.4  0.46 0.48 0.51 0.56 0.31 0.04 0.09]
-             [0.26 0.41 0.24 0.22 0.26 0.24 0.23 0.4  0.23 0.49]
-             [0.12 0.28 0.22 0.27 0.22 0.23 0.21 0.27 0.19 0.35]]
+        mean: [0.244 0.274 0.169 0.314] (std: 0.053)
+        std: [0.09  0.123 0.13  0.134] (mean: 0.119)
+        perClassPred: 
+          [[0.09 0.41 0.23 0.24 0.29 0.23 0.36 0.16 0.2  0.29]
+           [0.54 0.16 0.28 0.31 0.25 0.18 0.17 0.33 0.34 0.08]
+           [0.02 0.04 0.22 0.26 0.28 0.36 0.32 0.23 0.02 0.02]
+           [0.35 0.38 0.26 0.19 0.18 0.22 0.14 0.28 0.44 0.61]]
 
 
 
@@ -405,10 +445,16 @@ resume:
         - nb parameters: total(422_244), gating(33_900), experts(12 x 32_362)
         - best accuracy, train: 80.93% (epoch 30), test: 75.27% (epoch 27)
         - time taken: 459.0 sec
+        - experts gates:
+            mean: [0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.] (std: 0.276)
+            std: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.] (mean: 0.0)
     moe model 2 (gating:small, experts: 6 x small)
         - nb parameters: total(223_458), gating(29_286), experts(6 x 32_362)
         - best accuracy, train: 80.78% (epoch 30), test: 75.59% (epoch 27)
         - time taken: 260.7 sec
+        - experts gates:
+            mean: [0. 0. 0. 0. 0. 1.] (std: 0.373)
+            std: [0. 0. 0. 0. 0. 0.] (mean: 0.0)
     moe model 3 (gating:medium, experts: 6 x small)
         - nb parameters: total(620_658), gating(426_486), experts(6 x 32_362)
         - best accuracy, train: 84.15% (epoch 30), test: 74.57% (epoch 26)
@@ -417,10 +463,16 @@ resume:
         - nb parameters: total(1_799_244), gating(27_748), experts(4 x 442_874)
         - best accuracy, train: 91.17% (epoch 10), test: 79.92% (epoch 9)
         - time taken: 117.9 sec
+        - experts gates:
+            mean: [1. 0. 0. 0.] (std: 0.433)
+            std: [0.001 0.    0.    0.   ] (mean: 0.0)
     moe model 5 (gating:medium, experts: 4 x medium)
         - nb parameters: total(2_189_788), gating(418_292), experts(4 x 442_874)
         - best accuracy, train: 89.89% (epoch 10), test: 79.33% (epoch 10)
         - time taken: 133.0 sec
+        - experts gates:
+            mean: [0. 0. 0. 1.] (std: 0.433)
+            std: [0. 0. 0. 0.] (mean: 0.0)
     moe model 6 (gating:small, experts: 4 x large)
         - nb parameters: total(7_740_300), gating(27_748), experts(4 x 1_928_138)
         - best accuracy, train: 84.49% (epoch 10), test: 77.88% (epoch 9)
@@ -434,34 +486,64 @@ resume:
         - nb parameters: total(223_458), gating(29_286), experts(6 x 32_362)
         - best accuracy, train: 89.80% (epoch 30), test: 71.26% (epoch 21)
         - time taken: 265.3 sec
-        - experts gates (tests):
-          expertsMean: [0.13 0.18 0.17 0.08 0.2  0.23]
-          classVariance: [0.16 0.19 0.13 0.15 0.15 0.14 0.2  0.13 0.13 0.16]
+        - experts gates:
+            mean: [0.237 0.142 0.176 0.201 0.086 0.159] (std: 0.047)
+            std: [0.154 0.11  0.188 0.245 0.093 0.083] (mean: 0.146)
     moe2 model 2 (gating:small, experts: 4 x medium)
         - nb parameters: total(1_799_244), gating(27_748), experts(4 x 442_874)
         - best accuracy, train: 90.21% (epoch 10), test: 77.60% (epoch 9)
         - time taken: 123.5 sec
         - experts gates (tests):
-          expertsMean: [0.13 0.18 0.17 0.08 0.2  0.23]
-          classVariance: [0.19 0.12 0.1  0.15 0.16 0.17 0.2  0.14 0.18 0.18]
+            mean: [0.244 0.274 0.169 0.314] (std: 0.053)
+            std: [0.09  0.123 0.13  0.134] (mean: 0.119)
+        
 
 table:
 
------------------------------------------------------------------------------------------
-| config            | parameters | nbEpoches | testAccuracy | trainAccuracy | trainTime |
------------------------------------------------------------------------------------------
-| small             |     32_362 |        30 |       80.38% |        74.80% |  52.5 sec |
-| medium            |    442_874 |        10 |       90.08% |        78.76% |  35.8 sec |
-| large             |  1_928_138 |        10 |       88.46% |        80.38% |  77.0 sec |
------------------------------------------------------------------------------------------
-| small + 6 small   |    223_458 |        30 |       80.78% |        75.59% | 260.7 sec |
-| small + 12 small  |    422_244 |        30 |       80.93% |        75.27% | 459.0 sec |
-| small + 4 medium  |  1_799_244 |        10 |       91.17% |        79.92% | 117.9 sec |
-| small + 4 large   |  7_740_300 |        10 |       84.49% |        77.88% | 305.0 sec |
-| medium + 6 small  |    620_658 |        30 |       84.15% |        74.57% | 422.6 sec |
-| medium + 4 medium |  2_189_788 |        10 |       89.89% |        79.33% | 133.0 sec |
-| medium + 4 large  |  8_130_844 |        10 |       89.19% |        79.83% | 319.1 sec |
------------------------------------------------------------------------------------------
+-------------------- -------------------------------------------------------------------------------------
+| config             | parameters | nbEpoches | trainAccuracy | testAccuracy | trainTime | GVofM | GMofV | 
+-------------------- -------------------------------------------------------------------------------------
+| small              |     32'362 |        30 |         80.3% |        74.8% |    52 sec |     - |     - |
+| medium             |    442'874 |        10 |         90.0% |        78.7% |    35 sec |     - |     - |
+| large              |  1'928'138 |        10 |         88.4% |        80.3% |    77 sec |     - |     - |
+-------------------- -------------------------------------------------------------------------------------
+| small + 6 small    |    223'458 |        30 |         80.7% |        75.5% |   260 sec | 0.373 |   0.0 |
+| small + 12 small   |    422'244 |        30 |         80.9% |        75.2% |   459 sec | 0.276 |   0.0 |
+| small + 4 medium   |  1'799'244 |        10 |         91.1% |        79.9% |   117 sec | 0.433 |   0.0 |
+| small + 4 large    |  7'740'300 |        10 |         84.4% |        77.8% |   305 sec |     - |     - |
+| medium + 6 small   |    620'658 |        30 |         84.1% |        74.5% |   422 sec |     - |     - |
+| medium + 4 medium  |  2'189'788 |        10 |         89.8% |        79.3% |   133 sec | 0.433 |   0.0 |
+| medium + 4 large   |  8'130'844 |        10 |         89.1% |        79.8% |   319 sec |     - |     - |
+-------------------- -------------------------------------------------------------------------------------
+| * small + 6 small  |    223'458 |        30 |         89.8% |        71.2% |   265 sec | 0.047 | 0.146 |
+| * small + 4 medium |  1'799'244 |        10 |         90.2% |        77.6% |   123 sec | 0.053 | 0.119 |
+----------------------------------------------------------------------------------------------------------
+
+legend: 
+* : used a modified loss (see ...) to force the MoE to use all experts
+GVofM: standard deviation of mean gate activation of experts overall
+    ie. ~ how much a few expert is doing most of the work, so for the same number of experts, lower value is better 
+    so a high value means that there is a single expert being used
+GMofV: mean of standard deviation of gate activation of experts accros the differant classes
+    ie. ~ how much the experts are working on only some classes and not always all classes, so higher is better
+    so a value of 0.0 mean that experts always works on all classes
+
+
+conclusions:
+    Using experts that are too small leads to bad results, even when with the amount of experts where
+        the total number of parameters of the MoE equals the medium model
+    In this situation we can see that using the large base model don't give much better results than 
+        the base medium model that is sinificantly faster to train.
+    Using the large configuration for experts or the medium or larger configurations for the gating network
+        didn't lead to better results either, and again it slowed a lot the training.
+    With the implementation of the loss (see ...) from the paper (...), 
+        the MoE models performed the same as the experts base configuration. 
+        We can see that the gating tends to always select the same single expert, 
+            so the MoE acts like it was a single Expert, while continuing to train all the other experts.
+    In order to try solving this problem i tried a simple fix, 
+        I modified the original loss by adding a punishment when expertts where far from being evenly used acros a batch.
+        This fixed the problem of the MoE becoming a single expert model, 
+            but it lead to worst testing performances and more overfining on the small experts.
 
 
 conclusions:
