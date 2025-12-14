@@ -50,6 +50,8 @@ first lets define:
 
 original loss from the (Jacobs et al., 1991):
 -> $ \mathcal{Loss} = -log(\Sigma_{i=1}^{K}g_i*exp(-0.5*||y-o_i||^2)) $  ([1.1](#originalLoss))
+-> $ \frac{\partial \mathcal{Loss}}{\partial p_{j,k}} = - \frac{g_j * exp(-0.5*||y-p_i||^2)}{\Sigma_{i=1}^{K}{g_i*exp(-0.5*||y-p_i||^2)}} (y_{k} - p_{j,k}) $
+-> $ \frac{\partial \mathcal{Loss}}{\partial g_j} = - \frac{-exp(0.5*||y-p_i||^2)}{\Sigma_{i=1}^{K}g_i*exp(-0.5*||y-p_i||^2)} $
 
 my first aproche to adapte this to a classification probleme:
 we can remarque that the equation for the mean squared error is
@@ -62,20 +64,27 @@ Because i am working on a classification problem,
     is used softmax to obtain the probabilty distribution of the clases: $p_i$.
 i replaced the MSE by the cross entropy loss of each expert $i$ :
 -> $ CE_i(y) = -log(p_{i,y}) $
--> $ \mathcal{Loss} = -log(\Sigma_{i=1}^{K}g_i*exp(-0.5*CE_i(y))) $ ([1.3](#customLossV1CE))
+-> $ \mathcal{Loss} = -log(\Sigma_{i=1}^{K}g_i*exp(-0.5*CE_i(y))) $ ([1.3](#customLossCE))
+-> $ \frac{\partial \mathcal{Loss}}{\partial p_j} = \frac{\partial f(p_j)}{\partial p_j}\frac{0.5 * g_j * exp(-0.5*f(p_j))}{\Sigma_{i=1}^{K}{g_i*exp(-0.5*f(p_i))}} $
+-> $ \frac{\partial \mathcal{Loss}}{\partial g_j} = - \frac{-exp(0.5*f(p_j))}{\Sigma_{i=1}^{K}g_i*exp(-0.5*f(p_i))} $
 This is the first loss that i used for my training.
 ... talk about the results of this methode
 
-I later realized that the equation ([1.3](#customLossV1CE)) was equivalent to the following:
+I later realized that the equation ([1.3](#customLossCE)) was equivalent to the following:
 -> $ \mathcal{Loss} = -log(\Sigma_{i=1}^{K}g_i*exp(log[\sqrt{p_{i,y}}])) $
 -> $ \mathcal{Loss} = -log(\Sigma_{i=1}^{K}g_i*\sqrt{p_{i,y}}) $
+-> $ \frac{\partial \mathcal{Loss}}{\partial p_j} = -\frac{0.5*g_j}{\sqrt{p_j}*\Sigma_{i=1}^{K}{g[i]*\sqrt{p_i}}} $ 
+-> $ \frac{\partial \mathcal{Loss}}{\partial g_j} = -\frac{\sqrt{p_j}}{\Sigma_{i=1}^{K}{g_i*\sqrt{p_i}}} $ 
 This formula is the log likelihood of the sqare root of 
     the probabily distribution predicted by the experts.
 if we remembered that the output of the network is:
 -> $ \hat{y} = \Sigma_{i=1}^{K}g_i*p_i $
-The simplified version of the equation ([1.3](#customLossV1CE))
+The simplified version of the equation ([1.3](#customLossCE))
     looks just like just appling the cross entropy loss to the 
     output of the model. 
+-> $ \mathcal{Loss} = -log(\Sigma_{i=1}^{K}g_i*p_i) $ ([1.4](#baseLossCE))
+-> $ \frac{\partial \mathcal{Loss}}{\partial p_i} = \frac{-g[j]}{\Sigma_{i=1}^{K}g_i*p_i} $ 
+-> $ \frac{\partial \mathcal{Loss}}{\partial g_i} = \frac{-p[j]}{\Sigma_{i=1}^{K}g_i*p_i} $
 ... talk about the results of this methode
 
 ... put the table with all the methodes
