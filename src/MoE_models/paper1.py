@@ -9,7 +9,7 @@ _version = typing.Literal["original", "originalWithCE", "logLikelihood", ]
 class MOE_Model(torch.nn.Module):
     def __init__(
             self, experts:typing.Sequence[torch.nn.Module], gatingModel:torch.nn.Module,
-            isClassif:bool, loadBalance:bool, useVersion:_version, **kwargs) -> None:
+            isClassif:bool, loadBalance:bool, useVersion:_version, topK:int|None, **kwargs) -> None:
         """create the MoE model with the given experts and gating\n
         `experts` and `gatingModel` must take the same input, 
         `experts` must all give the same output: (batchSize, nbOuts),
@@ -23,6 +23,7 @@ class MOE_Model(torch.nn.Module):
             self.experts.append(expert)
         self.loadBalance: bool = loadBalance
         self.lossVersion: _version = useVersion
+        self.topK: int|None = topK
         
     @property
     def nbExperts(self)->int:
