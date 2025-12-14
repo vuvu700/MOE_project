@@ -7,3 +7,4 @@ rapport/*
 !rapport/*.sty
 !rapport/*.eps
 !rapport/*.png
+!rapport/rapport.pdf
