@@ -4,14 +4,12 @@ Jacobs et al., Adaptive Mixtures of Local Experts, Neural Computation, 1991"""
 import torch
 import typing
 
-from torch.nn.modules.module import Module
-
-
+_version = typing.Literal["original", "originalWithCE", "logLikelihood", ]
 
 class MOE_Model(torch.nn.Module):
     def __init__(
             self, experts:typing.Sequence[torch.nn.Module], gatingModel:torch.nn.Module,
-            isClassif:bool, loadBalance:bool, useOriginal:bool, **kwargs) -> None:
+            isClassif:bool, loadBalance:bool, useVersion:_version, **kwargs) -> None:
         """create the MoE model with the given experts and gating\n
         `experts` and `gatingModel` must take the same input, 
         `experts` must all give the same output: (batchSize, nbOuts),
@@ -24,7 +22,7 @@ class MOE_Model(torch.nn.Module):
             self.add_module(f"expert[{i}]", expert)
             self.experts.append(expert)
         self.loadBalance: bool = loadBalance
-        self.useOriginal: bool = useOriginal
+        self.lossVersion: _version = useVersion
         
     @property
     def nbExperts(self)->int:
@@ -62,33 +60,60 @@ class MOE_Model(torch.nn.Module):
             expertsLogits = torch.softmax(expertsLogits, dim=1)
         return (gatingOutput[:, None, :] * expertsLogits).sum(dim=2)
     
-    def _genericApplyLoss(self, expertsLoss:torch.Tensor, gatingOutput:torch.Tensor)->torch.Tensor:
-        """return the loss with the generic formula computed\
-         for each element of the batch (don't reduce)\n
-        `expertsLoss`: (batchSize, nbExperts)\n
-        `gatingOutput`: (batchSize, nbExperts)\n"""
-        loss = - torch.log((gatingOutput * torch.exp(-0.5 * expertsLoss)).sum(dim=1)).mean()
-        if self.loadBalance is True:
-            meanGate = gatingOutput.mean(dim=0)
-            """shape: (nbExperts, ) mean gate activation of experts over the batch"""
-            gateLoss = torch.pow(meanGate - float(1 / meanGate.shape[0]), 2.0).mean()
-            loss += gateLoss
-        return loss
-    
     def applyLossAll(
             self, mergedExpertsOutputs:torch.Tensor, 
             gatingOutput:torch.Tensor, truth:torch.Tensor)->torch.Tensor:
         kwargs = {"mergedExpertsOutputs": mergedExpertsOutputs, "gatingOutput": gatingOutput}
         if self.isClassif is True:
-            if self.useOriginal is True:
-                return self._applyOriginalLoss_classif(**kwargs, truthLabels=truth)
-            else: return self._applyLossCE(**kwargs, truthLabels=truth)
-        else: return self._applyOriginalLoss(**kwargs, truth=truth)
+            if self.lossVersion == "original":
+                loss = self._applyOriginalLoss_classif(**kwargs, truthLabels=truth)
+            elif self.lossVersion == "originalWithCE":
+                loss = self._applyLossCE(**kwargs, truthLabels=truth)
+            elif self.lossVersion == "logLikelihood":
+                loss = self._applyLossLogLikelihood(**kwargs, truthLabels=truth)
+            else: raise ValueError(f"invalide loss version with classification: {self.lossVersion}")
+        else: loss = self._applyOriginalLoss(**kwargs, truth=truth)
+        return self._addExpertsBalancingLoss(loss=loss, gatingOutput=gatingOutput)
+        
+    def _addExpertsBalancingLoss(
+            self, loss:torch.Tensor, gatingOutput:torch.Tensor)->torch.Tensor:
+        """conditionaly add the experts load balancing loss if needed\n
+        loss: (1, )\n
+        gatingOutput: (batchSize, nbExperts)"""
+        if self.loadBalance is True: # 
+            meanGate = gatingOutput.mean(dim=0)
+            """shape: (nbExperts, ) mean gate activation of experts over the batch"""
+            balancingLoss = torch.pow(meanGate - float(1 / meanGate.shape[0]), 2.0).mean()
+            loss = loss + balancingLoss
+        return loss
+    
+    def _applyOriginalLoss(
+            self, mergedExpertsOutputs:torch.Tensor, 
+            gatingOutput:torch.Tensor, truth:torch.Tensor)->torch.Tensor:
+        """compute the original loss from the paper, that is meant for regression\n
+        `mergedExpertsOutputs`: (batchSize, nbOuts, nbExperts)\n
+        `gatingOutput`: (batchSize, nbExperts)\n
+        `truthLabels`: (batchSize, nbOuts)\n
+        return the loss of the batch"""
+        expertsLoss = torch.norm((truth - mergedExpertsOutputs), p=2, dim=1) ** 2
+        """shape: (batchSize, nbExperts)"""
+        return self.__originalGenericApplyLoss(expertsLoss=expertsLoss, gatingOutput=gatingOutput)
+    
+    def __originalGenericApplyLoss(
+            self, expertsLoss:torch.Tensor, gatingOutput:torch.Tensor)->torch.Tensor:
+        """internal methode to compute the loss on each experts loss, 
+            based on the equation 1.3 from the paper. (apply mean reduction)\n
+        `expertsLoss`: (batchSize, nbExperts)\n
+        `gatingOutput`: (batchSize, nbExperts)\n"""
+        #loss = ((gatingOutput * expertsLoss).sum(dim=1)).mean() # first proposition from the paper
+        loss = - torch.log((gatingOutput * torch.exp(-0.5 * expertsLoss)).sum(dim=1)).mean()
+        return loss
     
     def _applyLossCE(
             self, mergedExpertsOutputs:torch.Tensor, 
             gatingOutput:torch.Tensor, truthLabels:torch.Tensor)->torch.Tensor:
-        """`mergedExpertsOutputs`: (batchSize, nbClasses, nbExperts)\n
+        """the adapted loss from the paper to use CE insted of the MSE.
+        `mergedExpertsOutputs`: (batchSize, nbClasses, nbExperts)\n
         `gatingOutput`: (batchSize, nbExperts)\n
         `truthLabels`: (batchSize, ) with the index of the label to predict\n
         return the loss of the batch"""
@@ -103,27 +128,17 @@ class MOE_Model(torch.nn.Module):
         """shape: (batchSize * nbExperts)"""
         expertsCE = flatExpertsCE.reshape(batchSize, nbExperts)
         """shape: (batchSize, nbExperts)"""
-        return self._genericApplyLoss(
+        return self.__originalGenericApplyLoss(
             expertsLoss=expertsCE, gatingOutput=gatingOutput)
-
-    def _applyOriginalLoss(
-            self, mergedExpertsOutputs:torch.Tensor, 
-            gatingOutput:torch.Tensor, truth:torch.Tensor)->torch.Tensor:
-        """`mergedExpertsOutputs`: (batchSize, nbOuts, nbExperts)\n
-        `gatingOutput`: (batchSize, nbExperts)\n
-        `truthLabels`: (batchSize, nbOuts)\n
-        return the loss of the batch"""
-        expertsLoss = torch.norm((truth - mergedExpertsOutputs), p=2, dim=1) ** 2
-        """shape: (batchSize, nbExperts)"""
-        return self._genericApplyLoss(expertsLoss=expertsLoss, gatingOutput=gatingOutput)
 
     def _applyOriginalLoss_classif(
             self, mergedExpertsOutputs:torch.Tensor, 
             gatingOutput:torch.Tensor, truthLabels:torch.Tensor)->torch.Tensor:
-        """`mergedExpertsOutputs`: (batchSize, nbClasses, nbExperts)\n
+        """compute the original loss from the paper and \
+            just convert the truthLabels to the expected probability distribution\n
+        `mergedExpertsOutputs`: (batchSize, nbClasses, nbExperts)\n
         `gatingOutput`: (batchSize, nbExperts)\n
-        `truthLabels`: (batchSize, ) with the index of the label to predict\n
-        return the loss of the batch"""
+        `truthLabels`: (batchSize, ) with the index of the label to predict"""
         (batchSize, nbClasses, nbExperts) = mergedExpertsOutputs.shape
         flatTruthClasses = torch.zeros((batchSize, nbClasses, nbExperts), device=truthLabels.device)
         flatTruthClasses[torch.arange(batchSize, device=truthLabels.device), truthLabels] = 1.0
@@ -133,17 +148,19 @@ class MOE_Model(torch.nn.Module):
             mergedExpertsOutputs=mergedExpertsOutputs, 
             gatingOutput=gatingOutput, truth=flatTruthClasses)
     
-
-"""
-tensor([7, 4, 9, 8, 8, 3, 2, 0, 1, 2, 6, 9, 0, 2, 2, 6, 5, 7, 9, 3, 5, 9, 0, 3,
-        4, 9, 3, 4, 5, 5, 1, 8, 1, 9, 9, 1, 8, 0, 1, 4, 3, 6, 1, 7, 7, 3, 9, 9,
-        5, 2, 9, 5, 5, 9, 9, 0, 5, 7, 5, 0, 2, 5, 1, 2, 9, 6, 9, 5, 6, 4, 2, 0,
-        6, 8, 3, 7, 9, 7, 2, 1, 9, 9, 7, 5, 3, 0, 3, 1, 9, 9, 8, 4, 0, 6, 9, 9,
-        8, 5, 1, 0, 5, 1, 8, 4, 1, 7, 1, 8, 7, 1, 6, 2, 4, 3, 8, 9, 3, 9, 7, 7,
-        9, 0, 0, 7, 5, 1, 1, 3, 6, 8, 3, 3, 0, 7, 2, 3, 4, 1, 5, 6, 9, 6, 2, 8,
-        7, 8, 3, 6, 1, 1, 8, 6, 1, 3, 9, 2, 8, 7, 7, 9, 8, 2, 2, 1, 2, 9, 7, 0,
-        2, 4, 8, 8, 2, 3, 1, 5, 9, 3, 5, 0, 6, 0, 1, 5, 7, 6, 8, 3, 5, 0, 3, 2,
-        4, 2, 6, 4, 1, 1, 5, 7, 7, 1, 8, 4, 4, 6, 3, 2, 8, 0, 2, 2, 0, 4, 1, 8,
-        0, 9, 1, 5, 0, 7, 8, 9, 0, 4, 6, 2, 0, 7, 6, 7, 2, 5, 1, 2, 8, 0, 2, 2,
-        2, 0, 0, 4, 5, 3, 8, 9, 7, 0, 3, 0, 0, 9, 5, 4], device='cuda:0')
-"""
+    def _applyLossLogLikelihood(
+            self, mergedExpertsOutputs:torch.Tensor, 
+            gatingOutput:torch.Tensor, truthLabels:torch.Tensor)->torch.Tensor:
+        """a better adaptation of the loss from the paper to classification\n
+        `mergedExpertsOutputs`: (batchSize, nbClasses, nbExperts)\n
+        `gatingOutput`: (batchSize, nbExperts)\n
+        `truthLabels`: (batchSize, ) with the index of the label to predict"""
+        (batchSize, nbClasses, nbExperts) = mergedExpertsOutputs.shape
+        batchIter = torch.arange(batchSize, device=mergedExpertsOutputs.device)
+        expertsOutsProba = torch.softmax(mergedExpertsOutputs, dim=1)
+        """shape: (batchSize, nbClasses, nbExperts) == p_i"""
+        targetedProbas = expertsOutsProba[batchIter, truthLabels, :]
+        """shape: (batchSize, nbExperts) == p_{i,y}"""
+        targetedProbas *= gatingOutput
+        """== g_i * p_{i,y}"""
+        return - torch.log(targetedProbas.sum(dim=1)).mean()

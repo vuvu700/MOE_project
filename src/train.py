@@ -5,10 +5,12 @@ import attrs
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
+import colorsys
 
 from handleDatas import CustomLoader, HandleClassifDatas
 import MoE_models.paper1
 
+from holo.__typing import assertListSubType
 from holo.profilers import ProgressBar, Profiler
 from holo.prettyFormats import prettyPrint, prettyTime
 
@@ -70,10 +72,16 @@ class EpochResultClassif():
 
 class HistoryClassification(list[EpochResultClassif]):
     
-    def plot(self):
+    def _fig(self, nrows:int):
         axs: list[Axes]
-        fig, axs = plt.subplots(ncols=1, nrows=3, sharex=True)
+        fig, axs = plt.subplots(ncols=1, nrows=nrows, sharex=True)
+        if nrows == 1:
+            axs = [axs] # type: ignore
         epoches = list(range(1, 1+len(self)))
+        return fig, axs, epoches
+    
+    def plot(self):
+        fig, axs, epoches = self._fig(nrows=3)
         
         axs[0].plot(epoches, [r.train.loss for r in self], label="loss_train")
         axs[0].plot(epoches, [r.test.loss for r in self], label="loss_test")
@@ -90,8 +98,25 @@ class HistoryClassification(list[EpochResultClassif]):
         axs[2].legend()
         axs[2].set_yscale("log")
         axs[2].grid(True)
+        plt.show()
+    
+    def plotMoe1Insigths(self):
+        fig, axs, epoches = self._fig(nrows=1)
         
-        return fig
+        moeTrain = assertListSubType(Moe1ExpertsInsigths, [r.train.moeExpertsInsigths for r in self])
+        moeTest = assertListSubType(Moe1ExpertsInsigths, [r.test.moeExpertsInsigths for r in self])
+        nbExperts = int(moeTrain[0].sumExpertsGate.shape[0])
+        colors = [colorsys.hsv_to_rgb((i / nbExperts), 1.0, 0.9) for i in range(nbExperts)]
+        expsTrain = numpy.stack([t.meanExpertsGate() for t in moeTrain], axis=0)
+        expsTest = numpy.stack([t.meanExpertsGate() for t in moeTest], axis=0)
+        for i in range(nbExperts):
+            axs[0].plot(epoches, expsTrain[:, i], c=colors[i], label=f"expert{i}_train")
+            axs[0].plot(epoches, expsTest[:, i], "--", c=colors[i], label=f"expert{i}_test")
+        axs[0].legend()
+        axs[0].set_ylim(0, 1)
+        axs[0].grid(True)
+        plt.show()
+
 
 
 class ConfusionMatrix():
@@ -277,7 +302,8 @@ class TrainerClassif_MoE1(TrainerClassif):
         outputs, expertsOuts, gating = self.model(inputs)
         self.__current_expertsOuts = expertsOuts.detach().cpu().numpy()
         self.__current_gating = gating.detach().cpu().numpy()
-        loss: torch.Tensor = self.model.applyLossAll(expertsOuts, gating, labels)
+        #loss: torch.Tensor = self.model.applyLossAll(expertsOuts, gating, labels)
+        loss: torch.Tensor = self.criterion(outputs, labels)
         return (outputs, loss)
     
     def computeMoeMetrics(

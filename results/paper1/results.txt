@@ -426,6 +426,62 @@ moe2 model 2 (gating:small, experts: 4 x medium)
            [0.35 0.38 0.26 0.19 0.18 0.22 0.14 0.28 0.44 0.61]]
 
 
+moe2 model 3 (gating:small, experts: 12 x small)
+    -> nb parameters: total(422_244), gating(33_900), experts(12 x 32_362)
+    training:
+        Epoch 1, train: (loss: 0.8035, accuracy: 44.25%), test: (loss: 0.6894, accuracy: 51.75%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 0.6337, accuracy: 57.25%), test: (loss: 0.6427, accuracy: 56.63%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 0.563, accuracy: 62.26%), test: (loss: 0.6331, accuracy: 58.54%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 0.5206, accuracy: 65.77%), test: (loss: 0.6002, accuracy: 61.71%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 0.4813, accuracy: 68.27%), test: (loss: 0.6204, accuracy: 61.27%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.455, accuracy: 70.10%), test: (loss: 0.6005, accuracy: 60.14%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.4286, accuracy: 71.94%), test: (loss: 0.5222, accuracy: 66.04%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.4077, accuracy: 73.28%), test: (loss: 0.4682, accuracy: 69.83%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.3865, accuracy: 74.80%), test: (loss: 0.4741, accuracy: 68.90%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.3669, accuracy: 76.02%), test: (loss: 0.4607, accuracy: 70.03%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.3529, accuracy: 77.12%), test: (loss: 0.4559, accuracy: 70.22%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.3357, accuracy: 78.31%), test: (loss: 0.4416, accuracy: 71.40%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.3209, accuracy: 79.06%), test: (loss: 0.5244, accuracy: 66.92%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.3085, accuracy: 79.87%), test: (loss: 0.4596, accuracy: 70.43%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.2962, accuracy: 80.70%), test: (loss: 0.4659, accuracy: 70.49%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.2848, accuracy: 81.71%), test: (loss: 0.4627, accuracy: 71.06%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.2724, accuracy: 82.24%), test: (loss: 0.5077, accuracy: 69.65%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.2624, accuracy: 82.91%), test: (loss: 0.4707, accuracy: 70.95%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.2547, accuracy: 83.53%), test: (loss: 0.4731, accuracy: 71.05%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.2405, accuracy: 84.40%), test: (loss: 0.4828, accuracy: 70.32%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.2335, accuracy: 84.88%), test: (loss: 0.4988, accuracy: 70.93%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.2264, accuracy: 85.47%), test: (loss: 0.4876, accuracy: 70.93%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.2192, accuracy: 85.95%), test: (loss: 0.4842, accuracy: 71.05%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.2118, accuracy: 86.45%), test: (loss: 0.4673, accuracy: 72.08%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.2033, accuracy: 86.90%), test: (loss: 0.5174, accuracy: 70.37%), lr: 1.0000e-03
+        Epoch 26, train: (loss: 0.194, accuracy: 87.58%), test: (loss: 0.4774, accuracy: 72.20%), lr: 1.0000e-03
+        Epoch 27, train: (loss: 0.1897, accuracy: 87.78%), test: (loss: 0.5632, accuracy: 70.09%), lr: 1.0000e-03
+        Epoch 28, train: (loss: 0.1849, accuracy: 88.09%), test: (loss: 0.5294, accuracy: 71.06%), lr: 1.0000e-03
+        Epoch 29, train: (loss: 0.186, accuracy: 88.06%), test: (loss: 0.5123, accuracy: 71.18%), lr: 1.0000e-03
+        Epoch 30, train: (loss: 0.1755, accuracy: 88.82%), test: (loss: 0.5417, accuracy: 69.47%), lr: 1.0000e-03
+    -> best accuracy, train: 88.82% (epoch 30), test: 72.20% (epoch 26)
+    time taken:
+        all: 100.00% (484.2 sec)
+        getBatch: 1.81%, predict+loss: 31.79%, backward: 53.79%, step: 2.32%,
+        metrics_base: 0.36%, metrics_moe: 1.10%, evaluate: 7.65%, 
+        progressBar: 0.93%, other: 0.27%
+    experts gates (tests):
+        mean: [0. 0. 0. 0. 0.161 0. 0.376 0.16  0.23  0. 0. 0.072] (std: 0.118)
+        std: [0. 0. 0. 0. 0.119 0. 0.303 0.125 0.179 0. 0. 0.116] (mean: 0.07)
+        perClassPred: 
+            [[0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.09 0.03 0.25 0.15 0.26 0.11 0.22 0.43 0.02 0.1 ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.5  0.88 0.14 0.22 0.17 0.1  0.05 0.21 0.68 0.85]
+             [0.04 0.05 0.18 0.26 0.1  0.41 0.29 0.16 0.03 0.02]
+             [0.04 0.04 0.38 0.35 0.46 0.37 0.44 0.2  0.01 0.02]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.33 0.   0.05 0.01 0.01 0.   0.01 0.01 0.27 0.  ]]
+
 ---------------------------------------------------------------------------
 
 
@@ -591,6 +647,178 @@ moe3 model 4 (gating:small, experts: 6 x medium)
 
 
 
+
+
+
+---------------------------------------------------------------------------
+here the results of the MOE (logLikelihood loss version) models to compare with
+
+
+moe4 model 1 (gating:small, experts: 6 x medium)
+    -> nb parameters: total(2_686_530), gating(29_286), experts(6 x 442_874)
+    training:
+        Epoch 1, train: (loss: 1.541, accuracy: 44.79%), test: (loss: 1.217, accuracy: 57.78%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.051, accuracy: 63.56%), test: (loss: 1.166, accuracy: 61.14%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 0.8113, accuracy: 72.34%), test: (loss: 1.088, accuracy: 64.31%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 0.6835, accuracy: 76.60%), test: (loss: 0.7379, accuracy: 75.19%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 0.5931, accuracy: 79.74%), test: (loss: 0.7282, accuracy: 75.32%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.5099, accuracy: 82.79%), test: (loss: 0.7745, accuracy: 74.95%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.4358, accuracy: 85.15%), test: (loss: 0.6173, accuracy: 79.83%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.377, accuracy: 87.05%), test: (loss: 0.6361, accuracy: 79.19%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.3158, accuracy: 89.27%), test: (loss: 0.7984, accuracy: 75.38%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.2677, accuracy: 90.81%), test: (loss: 0.7455, accuracy: 78.47%), lr: 1.0000e-03
+    -> best accuracy, train: 90.81% (epoch 10), test: 79.83% (epoch 7)
+    time taken:
+        all: 100.00% (171 sec)
+        getBatch: 3.87%, predict+loss: 28.73%, backward: 55.55%, step: 2.02%, 
+        metrics_base: 0.34%, metrics_moe: 1.02%, evaluate: 7.37%, 
+        progressBar: 0.87%, other: 0.22%
+    experts gates (tests):
+        mean: [0.996 0. 0. 0. 0. 0.004] (std: 0.371)
+        std: [0.002 0. 0. 0. 0. 0.002] (mean: 0.001)
+        perClassPred: 
+            [[1.   1.   1.   0.99 1.   0.99 1.   0.99 1.   0.99]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.01 0.   0.   0.   0.   0.   0.01]]
+
+moe4 model 2 (gating:small, experts: 4 x medium)
+    -> nb parameters: total(1_799_244), gating(27_748), experts(4 x 442_874)
+    training:
+        Epoch 1, train: (loss: 1.577, accuracy: 43.66%), test: (loss: 1.615, accuracy: 43.73%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.122, accuracy: 60.82%), test: (loss: 0.973, accuracy: 66.36%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 0.9101, accuracy: 68.20%), test: (loss: 1.154, accuracy: 60.98%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 0.7796, accuracy: 73.05%), test: (loss: 0.8674, accuracy: 71.20%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 0.6938, accuracy: 76.20%), test: (loss: 0.8122, accuracy: 72.28%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.6168, accuracy: 78.67%), test: (loss: 0.7997, accuracy: 73.66%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.54, accuracy: 81.32%), test: (loss: 0.772, accuracy: 74.44%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.4962, accuracy: 82.72%), test: (loss: 0.7327, accuracy: 75.89%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.4349, accuracy: 84.94%), test: (loss: 0.8039, accuracy: 74.97%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.3934, accuracy: 86.38%), test: (loss: 0.6834, accuracy: 78.26%), lr: 1.0000e-03
+    -> best accuracy, train: 86.38% (epoch 10), test: 78.26% (epoch 10)
+    time taken:
+        all: 100.00% (128.7 sec)
+        getBatch: 4.98%, predict+loss: 27.77%, backward: 54.10%, step: 2.16%,
+        metrics_base: 0.46%, metrics_moe: 1.40%, evaluate: 7.65%,
+        progressBar: 1.23%, other: 0.26%
+    experts gates (tests):
+        mean: [0.116 0.022 0.02  0.842] (std: 0.344)
+        std: [0.172 0.038 0.029 0.204] (mean: 0.111)
+        perClassPred: 
+            [[0.06 0.01 0.63 0.1  0.18 0.13 0.12 0.09 0.02 0.02]
+             [0.   0.   0.01 0.03 0.01 0.01 0.13 0.   0.   0.  ]
+             [0.01 0.   0.11 0.02 0.03 0.03 0.02 0.01 0.   0.  ]
+             [0.92 0.98 0.25 0.86 0.78 0.83 0.73 0.9  0.97 0.97]]
+
+moe4 model 3 (gating:small, experts: 6 x small)
+    -> nb parameters: total(223_458), gating(29_286), experts(6 x 32_362)
+    training:
+        Epoch 1, train: (loss: 1.546, accuracy: 44.32%), test: (loss: 1.35, accuracy: 51.20%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.206, accuracy: 57.16%), test: (loss: 1.173, accuracy: 59.08%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 1.07, accuracy: 62.09%), test: (loss: 1.266, accuracy: 56.61%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 0.9825, accuracy: 65.50%), test: (loss: 1.009, accuracy: 64.73%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 0.9126, accuracy: 67.98%), test: (loss: 1.175, accuracy: 60.43%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.8551, accuracy: 70.06%), test: (loss: 0.9633, accuracy: 66.60%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.8154, accuracy: 71.41%), test: (loss: 0.9211, accuracy: 67.53%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.7711, accuracy: 73.04%), test: (loss: 0.9429, accuracy: 66.77%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.7386, accuracy: 74.11%), test: (loss: 1.015, accuracy: 65.20%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.7046, accuracy: 75.35%), test: (loss: 0.9469, accuracy: 67.26%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.6824, accuracy: 76.25%), test: (loss: 0.9092, accuracy: 68.00%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.6495, accuracy: 77.10%), test: (loss: 0.8397, accuracy: 70.93%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.6284, accuracy: 77.90%), test: (loss: 0.8367, accuracy: 71.19%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.6047, accuracy: 78.41%), test: (loss: 0.8941, accuracy: 69.40%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.5834, accuracy: 79.68%), test: (loss: 1.002, accuracy: 65.71%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.5681, accuracy: 80.16%), test: (loss: 0.828, accuracy: 71.03%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.5492, accuracy: 80.41%), test: (loss: 0.7816, accuracy: 73.29%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.5243, accuracy: 81.40%), test: (loss: 0.7979, accuracy: 72.86%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.5083, accuracy: 81.89%), test: (loss: 0.8401, accuracy: 71.83%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.4895, accuracy: 82.92%), test: (loss: 0.8006, accuracy: 72.51%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.481, accuracy: 82.84%), test: (loss: 0.8224, accuracy: 72.47%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.4639, accuracy: 83.52%), test: (loss: 0.8181, accuracy: 72.31%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.4498, accuracy: 84.20%), test: (loss: 0.8836, accuracy: 70.52%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.4375, accuracy: 84.33%), test: (loss: 0.8541, accuracy: 72.23%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.421, accuracy: 84.81%), test: (loss: 0.8718, accuracy: 71.07%), lr: 1.0000e-03
+        Epoch 26, train: (loss: 0.411, accuracy: 85.23%), test: (loss: 0.9318, accuracy: 70.39%), lr: 1.0000e-03
+        Epoch 27, train: (loss: 0.4007, accuracy: 85.64%), test: (loss: 0.8579, accuracy: 72.31%), lr: 1.0000e-03
+        Epoch 28, train: (loss: 0.3919, accuracy: 85.88%), test: (loss: 0.8379, accuracy: 73.30%), lr: 1.0000e-03
+        Epoch 29, train: (loss: 0.378, accuracy: 86.48%), test: (loss: 0.8656, accuracy: 72.19%), lr: 1.0000e-03
+        Epoch 30, train: (loss: 0.3667, accuracy: 86.83%), test: (loss: 0.9377, accuracy: 70.06%), lr: 1.0000e-03
+    -> best accuracy, train: 86.83% (epoch 30), test: 73.30% (epoch 28)
+    time taken:
+        all: 100.00% (278.5 sec)
+        getBatch: 2.89%, predict+loss: 30.73%, backward: 51.97%, step: 2.73%,
+        metrics_base: 0.62%, metrics_moe: 1.91%, evaluate: 7.87%,
+        progressBar: 0.94%, other: 0.34%
+    experts gates (tests):
+        mean: [0.021 0.03  0.144 0.153 0.456 0.197] (std: 0.145)
+        std: [0.065 0.063 0.164 0.149 0.319 0.192] (mean: 0.159)
+        perClassPred: 
+            [[0.   0.   0.01 0.01 0.22 0.   0.01 0.   0.   0.  ]
+             [0.01 0.   0.22 0.01 0.01 0.01 0.01 0.   0.   0.  ]
+             [0.58 0.01 0.27 0.06 0.16 0.05 0.14 0.11 0.05 0.02]
+             [0.2  0.01 0.25 0.13 0.1  0.15 0.05 0.06 0.54 0.01]
+             [0.19 0.97 0.15 0.29 0.41 0.26 0.54 0.78 0.06 0.96]
+             [0.02 0.01 0.11 0.5  0.1  0.53 0.25 0.05 0.36 0.01]]
+
+moe4 model 4 (gating:small, experts: 12 x small)
+    -> nb parameters: total(422_244), gating(33_900), experts(12 x 32_362)
+    training:
+        Epoch 1, train: (loss: 1.54, accuracy: 44.43%), test: (loss: 1.316, accuracy: 53.27%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.187, accuracy: 58.22%), test: (loss: 1.142, accuracy: 60.04%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 1.046, accuracy: 63.13%), test: (loss: 1.146, accuracy: 59.20%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 0.9484, accuracy: 66.89%), test: (loss: 1.124, accuracy: 58.55%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 0.8821, accuracy: 69.33%), test: (loss: 0.9312, accuracy: 68.17%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.8316, accuracy: 71.06%), test: (loss: 1.013, accuracy: 64.17%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.779, accuracy: 72.59%), test: (loss: 0.8677, accuracy: 69.89%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.7403, accuracy: 74.07%), test: (loss: 1.018, accuracy: 64.21%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.706, accuracy: 75.24%), test: (loss: 1.02, accuracy: 64.73%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.6762, accuracy: 76.49%), test: (loss: 0.8277, accuracy: 71.43%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.6552, accuracy: 76.91%), test: (loss: 0.8241, accuracy: 71.72%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.6192, accuracy: 78.21%), test: (loss: 0.9756, accuracy: 67.53%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.5882, accuracy: 79.20%), test: (loss: 0.8149, accuracy: 71.79%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.5716, accuracy: 79.90%), test: (loss: 0.8032, accuracy: 72.52%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.5492, accuracy: 80.66%), test: (loss: 0.7626, accuracy: 73.63%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.5302, accuracy: 81.39%), test: (loss: 0.7617, accuracy: 74.29%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.5092, accuracy: 81.92%), test: (loss: 0.8718, accuracy: 70.72%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.4913, accuracy: 82.63%), test: (loss: 0.8371, accuracy: 72.52%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.4752, accuracy: 83.12%), test: (loss: 0.782, accuracy: 73.28%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.4608, accuracy: 83.43%), test: (loss: 0.7767, accuracy: 74.07%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.4419, accuracy: 84.11%), test: (loss: 0.7675, accuracy: 74.73%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.4247, accuracy: 84.84%), test: (loss: 0.8322, accuracy: 72.24%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.4173, accuracy: 85.02%), test: (loss: 0.7932, accuracy: 73.92%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.4066, accuracy: 85.49%), test: (loss: 0.8696, accuracy: 71.60%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.3841, accuracy: 86.17%), test: (loss: 0.8024, accuracy: 73.72%), lr: 1.0000e-03
+        Epoch 26, train: (loss: 0.3797, accuracy: 86.34%), test: (loss: 0.7774, accuracy: 74.87%), lr: 1.0000e-03
+        Epoch 27, train: (loss: 0.3684, accuracy: 86.82%), test: (loss: 0.8927, accuracy: 71.83%), lr: 1.0000e-03
+        Epoch 28, train: (loss: 0.3516, accuracy: 87.36%), test: (loss: 0.8807, accuracy: 72.32%), lr: 1.0000e-03
+        Epoch 29, train: (loss: 0.3419, accuracy: 87.69%), test: (loss: 0.8582, accuracy: 73.42%), lr: 1.0000e-03
+        Epoch 30, train: (loss: 0.3337, accuracy: 88.05%), test: (loss: 0.8364, accuracy: 73.21%), lr: 1.0000e-03
+    -> best accuracy, train: 88.05% (epoch 30), test: 74.87% (epoch 26)
+    time taken:
+        all: 100.00% (482.5 sec)
+        getBatch: 1.76%, predict+loss: 31.69%, backward: 53.92%, step: 2.51%,
+        metrics_base: 0.38%, metrics_moe: 1.13%, evaluate: 7.40%, 
+        progressBar: 0.94%, other: 0.27%
+    experts gates (tests):
+        mean: [0. 0.339 0.001 0.049 0. 0. 0.34  0. 0.067 0.2   0. 0.003] (std: 0.127)
+        std: [0. 0.194 0.001 0.047 0. 0. 0.367 0. 0.124 0.198 0. 0.008] (mean: 0.078)
+        perClassPred:
+            [[0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.19 0.12 0.5  0.56 0.37 0.52 0.32 0.61 0.13 0.06]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.01 0.01 0.14 0.07 0.09 0.09 0.07 0.02 0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.34 0.86 0.04 0.03 0.09 0.01 0.01 0.23 0.84 0.93]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.42 0.   0.12 0.03 0.01 0.   0.01 0.   0.02 0.  ]
+             [0.01 0.01 0.19 0.31 0.43 0.38 0.59 0.14 0.01 0.01]
+             [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+             [0.03 0.   0.   0.   0.   0.   0.   0.   0.   0.  ]]
+
+
 resume:
     base model 2 (small)
         - nb parameters: 32_362
@@ -660,6 +888,13 @@ resume:
         - experts gates (tests):
             mean: [0.244 0.274 0.169 0.314] (std: 0.053)
             std: [0.09  0.123 0.13  0.134] (mean: 0.119)
+    moe2 model 3 (gating:small, experts: 12 x small)
+        - nb parameters: total(422_244), gating(33_900), experts(12 x 32_362)
+        - best accuracy, train: 88.82% (epoch 30), test: 72.20% (epoch 26)
+        - time taken: 484.2 sec
+        - experts gates (tests):
+            mean: [0. 0. 0. 0. 0.161 0. 0.376 0.16  0.23  0. 0. 0.072] (std: 0.118)
+            std: [0. 0. 0. 0. 0.119 0. 0.303 0.125 0.179 0. 0. 0.116] (mean: 0.07)
 ---------------------------------------------------------------------------
     moe3 model 1 (gating:small, experts: 4 x medium)
         - nb parameters: total(1_799_244), gating(27_748), experts(4 x 442_874)
@@ -689,6 +924,38 @@ resume:
         - experts gates (tests):
             mean: [1. 0. 0. 0. 0. 0.] (std: 0.373)
             std: [0. 0. 0. 0. 0. 0.] (mean: 0.0)
+---------------------------------------------------------------------------
+    moe4 model 1 (gating:small, experts: 6 x medium)
+        - nb parameters: total(2_686_530), gating(29_286), experts(6 x 442_874)
+        - best accuracy, train: 90.81% (epoch 10), test: 79.83% (epoch 7)
+        - time taken: 171 sec
+        - experts gates (tests):
+            - mean: [0.996 0. 0. 0. 0. 0.004] (std: 0.371)
+            - std: [0.002 0. 0. 0. 0. 0.002] (mean: 0.001)
+    moe4 model 2 (gating:small, experts: 4 x medium)
+        - nb parameters: total(1_799_244), gating(27_748), experts(4 x 442_874)
+        - best accuracy, train: 86.38% (epoch 10), test: 78.26% (epoch 10)
+        - time taken: 128.7 sec
+        - experts gates (tests):
+            mean: [0.116 0.022 0.02  0.842] (std: 0.344)
+            std: [0.172 0.038 0.029 0.204] (mean: 0.111)
+    moe4 model 3 (gating:small, experts: 6 x small)
+        - nb parameters: total(223_458), gating(29_286), experts(6 x 32_362)
+        - best accuracy, train: 86.83% (epoch 30), test: 73.30% (epoch 28)
+        - time taken: 278.5 sec
+        -experts gates (tests):
+            mean: [0.021 0.03  0.144 0.153 0.456 0.197] (std: 0.145)
+            std: [0.065 0.063 0.164 0.149 0.319 0.192] (mean: 0.159)
+    moe4 model 4 (gating:small, experts: 12 x small)
+        - nb parameters: total(422_244), gating(33_900), experts(12 x 32_362)
+        - best accuracy, train: 88.05% (epoch 30), test: 74.87% (epoch 26)
+        - time taken: 482.5 sec
+        - experts gates (tests):
+            mean: [0. 0.339 0.001 0.049 0. 0. 0.34  0. 0.067 0.2   0. 0.003] (std: 0.127)
+            std: [0. 0.194 0.001 0.047 0. 0. 0.367 0. 0.124 0.198 0. 0.008] (mean: 0.078)
+
+
+
 
 
 table:
@@ -698,11 +965,11 @@ table:
 ------------------------------------------------------------------------------------------------------------------
 | base models, no experts                                                                                        |
 ------------------------------------------------------------------------------------------------------------------
-| small             |     32'362 |        30 |         80.3% |        74.8% |    52 sec |     - |     - |      / |
-| medium            |    442'874 |        10 |         90.0% |        78.7% |    35 sec |     - |     - |      / |
-| large             |  1'928'138 |        10 |         88.4% |        80.3% |    77 sec |     - |     - |      / |
+| small             |     32'362 |        30 |         80.3% |        74.8% |    52 sec |     - |     - |      - |
+| medium            |    442'874 |        10 |         90.0% |        78.7% |    35 sec |     - |     - |      - |
+| large             |  1'928'138 |        10 |         88.4% |        80.3% |    77 sec |     - |     - |      - |
 ------------------------------------------------------------------------------------------------------------------
-| MoE from (Jacobs et al., 1991), using cross entropy (see ...)                                                  |
+| MoE from (Jacobs et al., 1991), using modified loss with cross entropy (see ...)                               |
 ------------------------------------------------------------------------------------------------------------------
 | small + 6 small   |    223'458 |        30 |         80.7% |        75.5% |   260 sec | 0.373 |   0.0 |      1 |
 | small + 12 small  |    422'244 |        30 |         80.9% |        75.2% |   459 sec | 0.276 |   0.0 |      1 |
@@ -712,18 +979,55 @@ table:
 | medium + 4 medium |  2'189'788 |        10 |         89.8% |        79.3% |   133 sec | 0.433 |   0.0 |      1 |
 | medium + 4 large  |  8'130'844 |        10 |         89.1% |        79.8% |   319 sec |     - |     - |      1 |
 ------------------------------------------------------------------------------------------------------------------
-| MoE from (Jacobs et al., 1991), using cross entropy and simple load balancing (see ...)                        |
+| MoE from (Jacobs et al., 1991), using modified loss with cross entropy + simple load balancing                 |
 ------------------------------------------------------------------------------------------------------------------
 | small + 6 small   |    223'458 |        30 |         89.8% |        71.2% |   265 sec | 0.047 | 0.146 |      6 |
+| small + 12 small  |    422'244 |        30 |         88.8% |        72.2% |   484 sec | 0.118 | 0.070 |      5 |
 | small + 4 medium  |  1'799'244 |        10 |         90.2% |        77.6% |   123 sec | 0.053 | 0.119 |      4 |
 ------------------------------------------------------------------------------------------------------------------
 | MoE from (Jacobs et al., 1991), using the original loss from the paper (so, no load balancing)                 |
 ------------------------------------------------------------------------------------------------------------------
-| small + 6 small   |    223'458 |        29 |        81.45% |       75.09% |   260 sec | 0.332 | 0.052 |      2 |
-| small + 12 small  |    422'244 |        30 |        82.42% |       73.91% |   459 sec | 0.215 | 0.028 |      2 |
-| small + 4 medium  |  1'799'244 |        10 |        83.29% |       74.37% |   123 sec | 0.274 | 0.205 |      2 |
-| small + 6 medium  |  2'686'530 |        10 |        84.15% |       76.95% |   167 sec | 0.373 |   0.0 |      1 |
+| small + 6 small   |    223'458 |        29 |         81.4% |        75.0% |   260 sec | 0.332 | 0.052 |      2 |
+| small + 12 small  |    422'244 |        30 |         82.4% |        73.9% |   459 sec | 0.215 | 0.028 |      2 |
+| small + 4 medium  |  1'799'244 |        10 |         83.2% |        74.3% |   123 sec | 0.274 | 0.205 |      2 |
+| small + 6 medium  |  2'686'530 |        10 |         84.1% |        76.9% |   167 sec | 0.373 |   0.0 |      1 |
 ------------------------------------------------------------------------------------------------------------------
+| MoE from (Jacobs et al., 1991), using with the simple cross entropy loss (see ...) (no load balancing)         |
+------------------------------------------------------------------------------------------------------------------
+| small + 6 small   |  223'458   |        30 |         86.8% |        73.3% |   278 sec | 0.145 | 0.159 |  4 ~ 6 |
+| small + 12 small  |  422'244   |        30 |         88.0% |        74.8% |   482 sec | 0.127 | 0.078 |  4 ~ 5 |
+| small + 4 medium  |  1'799'244 |        10 |         86.3% |        78.2% |   128 sec | 0.344 | 0.111 |  2 ~ 4 |
+| small + 6 medium  |  2'686'530 |        10 |         90.8% |        79.8% |   171 sec | 0.371 | 0.001 |      1 |
+------------------------------------------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------------------------------
+| loss version              | trainAccuracy | testAccuracy | rank | trainTime | GVofM | GMofV | nbUsed |
+--------------------------------------------------------------------------------------------------------
+|      small + 6 small, 223'458 parameters, 30 epoches                                                 |
+--------------------------------------------------------------------------------------------------------
+| base 1 small (32'362 p)   |         80.3% |        74.8% |    3 |    52 sec |     - |     - |      - |
+| original + CE             |         80.7% |        75.5% |    1 |   260 sec | 0.373 |   0.0 |      1 |
+| original + CE + balance   |         89.8% |        71.2% |    5 |   265 sec | 0.047 | 0.146 |      6 |
+| original (MSE)            |         81.4% |        75.0% |    2 |   260 sec | 0.332 | 0.052 |      2 |
+| cross entropy             |         86.8% |        73.3% |    4 |   278 sec | 0.145 | 0.159 |  4 ~ 6 |
+--------------------------------------------------------------------------------------------------------
+|      small + 12 small, 422'244 parameters, 30 epoches                                                |
+--------------------------------------------------------------------------------------------------------
+| base 1 small (32'362 p)   |         80.3% |        74.8% |    2 |    52 sec |     - |     - |      - |
+| original + CE             |         80.9% |        75.2% |    1 |   459 sec | 0.276 |   0.0 |      1 |
+| original + CE + balance   |         88.8% |        72.2% |    5 |   484 sec | 0.118 | 0.070 |      5 |
+| original (MSE)            |         82.4% |        73.9% |    4 |   459 sec | 0.215 | 0.028 |      2 |
+| cross entropy             |         88.0% |        74.8% |    3 |   482 sec | 0.127 | 0.078 |  4 ~ 5 |
+--------------------------------------------------------------------------------------------------------
+|      small + 4 medium, 1'799'244 parameters, 10 epoches                                              |
+--------------------------------------------------------------------------------------------------------
+| base 1 medium (442'874 p) |         90.0% |        78.7% |    2 |    35 sec |     - |     - |      - |
+| original + CE             |         91.1% |        79.9% |    1 |   117 sec | 0.433 |   0.0 |      1 |
+| original + CE + balance   |         90.2% |        77.6% |    4 |   123 sec | 0.053 | 0.119 |      4 |
+| original (MSE)            |         83.2% |        74.3% |    5 |   123 sec | 0.274 | 0.205 |      2 |
+| cross entropy             |         86.3% |        78.2% |    3 |   128 sec | 0.344 | 0.111 |  2 ~ 4 |
+--------------------------------------------------------------------------------------------------------
 
 
 legend: 
@@ -733,6 +1037,9 @@ GVofM: standard deviation of mean gate activation of experts overall
 GMofV: mean of standard deviation of gate activation of experts accros the differant classes
     ie. ~ how much the experts are working on only some classes and not always all classes, so higher is better
     so a value of 0.0 mean that activated experts always works on all classes
+nbUsed (a ~ b): the number of experts used (single number means a = b)
+    a are the number of experts that are slighty used a lot
+    b are the number of experts that are slighty used or more
 
 
 conclusions:
@@ -757,7 +1064,9 @@ conclusions:
         because for the model (small + 6 medium) it finished with a single expert, 
         and many another training of this model never predicted one of the classes.
         About the test performances, this is either worst or the same as with the CE
-
+    when using the log logLikelihood loss, it resulted 
+        in automatic load balancing betwin the experts 
+        and some good performances compared to the other methodes.
 
 
 
@@ -770,4 +1079,5 @@ ___ model ___ (gating:___, experts: ___ x ___)
         all: 100.00% (___ sec)
         ___
     experts gates (tests):
+        ___
     
