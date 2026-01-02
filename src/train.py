@@ -2,6 +2,7 @@ import torch
 import numpy
 from torch.utils.data import DataLoader
 import attrs
+import typing
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -9,6 +10,7 @@ import colorsys
 
 from handleDatas import CustomLoader, HandleClassifDatas
 import MoE_models.paper1
+import MoE_models.paper2
 
 from holo.__typing import assertListSubType
 from holo.profilers import ProgressBar, Profiler
@@ -47,6 +49,12 @@ class Moe1ExpertsInsigths(MoeExpertsInsigths):
             sumTrueClassesExpertsGate=numpy.zeros((nbClasses, nbExperts, )),
             nbPred=numpy.zeros((nbClasses, ), dtype=numpy.int64), 
             nbTruth=numpy.zeros((nbClasses, ), dtype=numpy.int64))
+
+
+@attrs.define
+class Moe2ExpertsInsigths(MoeExpertsInsigths):
+    expertsInsigths: list[Moe1ExpertsInsigths]
+    
 
 @attrs.frozen
 class ResultClassif():
@@ -100,21 +108,40 @@ class HistoryClassification(list[EpochResultClassif]):
         axs[2].grid(True)
         plt.show()
     
-    def plotMoe1Insigths(self):
-        fig, axs, epoches = self._fig(nrows=1)
-        
-        moeTrain = assertListSubType(Moe1ExpertsInsigths, [r.train.moeExpertsInsigths for r in self])
-        moeTest = assertListSubType(Moe1ExpertsInsigths, [r.test.moeExpertsInsigths for r in self])
+    def __internal_plotMoe1Insigths(
+            self, axis:Axes, epoches:list[int], 
+            moeTrain:list[Moe1ExpertsInsigths], moeTest:list[Moe1ExpertsInsigths])->None:
         nbExperts = int(moeTrain[0].sumExpertsGate.shape[0])
         colors = [colorsys.hsv_to_rgb((i / nbExperts), 1.0, 0.9) for i in range(nbExperts)]
         expsTrain = numpy.stack([t.meanExpertsGate() for t in moeTrain], axis=0)
         expsTest = numpy.stack([t.meanExpertsGate() for t in moeTest], axis=0)
         for i in range(nbExperts):
-            axs[0].plot(epoches, expsTrain[:, i], c=colors[i], label=f"expert{i}_train")
-            axs[0].plot(epoches, expsTest[:, i], "--", c=colors[i], label=f"expert{i}_test")
-        axs[0].legend()
-        axs[0].set_ylim(0, 1)
-        axs[0].grid(True)
+            axis.plot(epoches, expsTrain[:, i], c=colors[i], label=f"expert{i}_train")
+            axis.plot(epoches, expsTest[:, i], "--", c=colors[i], label=f"expert{i}_test")
+        axis.legend()
+        #axis.set_ylim(0, None)
+        axis.grid(True)
+    
+    def plotMoe1Insigths(self):
+        fig, axs, epoches = self._fig(nrows=1)
+        moeTrain = assertListSubType(Moe1ExpertsInsigths, [r.train.moeExpertsInsigths for r in self])
+        moeTest = assertListSubType(Moe1ExpertsInsigths, [r.test.moeExpertsInsigths for r in self])
+        self.__internal_plotMoe1Insigths(axs[0], epoches, moeTrain, moeTest)
+        plt.show()
+
+    def plotMoe2Insigths(self)->None:
+        moeTrain = assertListSubType(Moe2ExpertsInsigths, [r.train.moeExpertsInsigths for r in self])
+        moeTest = assertListSubType(Moe2ExpertsInsigths, [r.test.moeExpertsInsigths for r in self])
+        moeTrain2: "dict[int, list[Moe1ExpertsInsigths]]" = typing.DefaultDict(list)
+        moeTest2: "dict[int, list[Moe1ExpertsInsigths]]" = typing.DefaultDict(list)
+        for insTrain, insTest in zip(moeTrain, moeTest):
+            for iMoE, (train, test) in enumerate(zip(insTest.expertsInsigths, insTest.expertsInsigths)):
+                moeTrain2[iMoE].append(train)
+                moeTest2[iMoE].append(test)
+        nbMoe = len(moeTrain2)
+        fig, axs, epoches = self._fig(nrows=nbMoe)
+        for iMoE in range(nbMoe):
+            self.__internal_plotMoe1Insigths(axs[iMoE], epoches, moeTrain2[iMoE], moeTest2[iMoE])
         plt.show()
 
 
@@ -302,8 +329,7 @@ class TrainerClassif_MoE1(TrainerClassif):
         outputs, expertsOuts, gating = self.model(inputs)
         self.__current_expertsOuts = expertsOuts.detach().cpu().numpy()
         self.__current_gating = gating.detach().cpu().numpy()
-        #loss: torch.Tensor = self.model.applyLossAll(expertsOuts, gating, labels)
-        loss: torch.Tensor = self.criterion(outputs, labels)
+        loss: torch.Tensor = self.model.applyLossAll(expertsOuts, gating, labels)
         return (outputs, loss)
     
     def computeMoeMetrics(
@@ -323,8 +349,64 @@ class TrainerClassif_MoE1(TrainerClassif):
         currentInsigths.sumExpertsGate += self.__current_gating.sum(axis=0)
         currentInsigths.nbPred += predClassCount
         currentInsigths.nbTruth += truthClassCount
-        for iBatch in range(batchSize):
-            gates = self.__current_gating[iBatch, :]
-            currentInsigths.sumPredClassesExpertsGate[npPredLabels[iBatch], :] += gates
-            currentInsigths.sumTrueClassesExpertsGate[npLabels[iBatch], :] += gates
+        numpy.add.at(currentInsigths.sumPredClassesExpertsGate, npPredLabels, self.__current_gating)
+        numpy.add.at(currentInsigths.sumTrueClassesExpertsGate, npLabels, self.__current_gating)
+        return currentInsigths
+
+
+class TrainerClassif_MoE2(TrainerClassif):
+    model:MoE_models.paper2.VisionModelMoe
+    
+    def __init__(
+            self, model:MoE_models.paper2.VisionModelMoe, optimizer:torch.optim.Optimizer,
+            criterion:torch.nn.Module, device:torch.device) -> None:
+        super().__init__(
+            model=model, optimizer=optimizer, criterion=criterion, device=device)
+        self.__current_gating: list[numpy.ndarray]|None = None
+        
+    def forwardAndLoss(
+            self, inputs:torch.Tensor, labels:torch.Tensor
+            )->tuple[torch.Tensor, torch.Tensor]:
+        outputs, allGates = self.model(inputs)
+        self.__current_gating = []
+        for gating in allGates:
+            self.__current_gating.append(gating.detach().cpu().numpy())
+        loss: torch.Tensor = self.criterion(outputs, labels)
+        loss += self.model.balanceLoss(allGates)
+        return (outputs, loss)
+    
+    def computeMoeMetrics(
+            self, currentInsigths:MoeExpertsInsigths|None,
+            outputs:torch.Tensor, labels:torch.Tensor) -> MoeExpertsInsigths|None:
+        assert self.__current_gating is not None
+        nbClasses = self.model.nbClasses
+        if currentInsigths is None:
+            currentInsigths = Moe2ExpertsInsigths([
+                Moe1ExpertsInsigths.empty(nbExperts=gating.shape[-1], nbClasses=nbClasses)
+                for gating in self.__current_gating])
+        assert isinstance(currentInsigths, Moe2ExpertsInsigths)
+        npLabels = labels.cpu().numpy()
+        npPredLabels = torch.argmax(outputs.detach(), dim=-1).cpu().numpy()
+        predClassCount = numpy.bincount(npPredLabels, minlength=nbClasses)
+        truthClassCount = numpy.bincount(npLabels, minlength=nbClasses)
+        for iGate, gating in enumerate(self.__current_gating):
+            if len(gating.shape) == 2:
+                insigth = currentInsigths.expertsInsigths[iGate]
+                insigth.sumExpertsGate += gating.sum(axis=0)
+                insigth.nbPred += predClassCount
+                insigth.nbTruth += truthClassCount
+                numpy.add.at(insigth.sumPredClassesExpertsGate, npPredLabels, gating)
+                numpy.add.at(insigth.sumTrueClassesExpertsGate, npLabels, gating)
+            else: # => cnn out
+                batch, H, W, nbExperts = gating.shape
+                HW = H * W
+                insigth = currentInsigths.expertsInsigths[iGate]
+                gatingRe = gating.reshape(batch * HW, nbExperts)
+                insigth.sumExpertsGate += gatingRe.sum(axis=0)
+                insigth.nbPred += predClassCount * HW
+                insigth.nbTruth += truthClassCount * HW
+                #print(f"{npPredLabels.repeat(HW).shape = }")
+                #print(f"{insigth.sumPredClassesExpertsGate.shape = }")
+                numpy.add.at(insigth.sumPredClassesExpertsGate, npPredLabels.repeat(HW), gatingRe)
+                numpy.add.at(insigth.sumTrueClassesExpertsGate, npLabels.repeat(HW), gatingRe)
         return currentInsigths

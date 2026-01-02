@@ -1,0 +1,16 @@
+here the results of the base models to compare with
+all used the same config for a given model size, 
+    all trained with 256 batchSize, trainProp=0.8, and lr=1.0e-03
+    and no data augmentation (to reduce randomness)
+
+
+___ model ___ (gating:___, experts: ___ x ___, topK: ___)
+    -> nb parameters: total(___), gating(___), experts(___ x ___)
+    training:
+        ___
+    -> best accuracy, train: ___% (epoch ___), test: ___% (epoch ___)
+    time taken:
+        all: 100.00% (___ sec)
+        ___
+    experts gates (tests):
+        ___
