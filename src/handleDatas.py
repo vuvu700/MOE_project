@@ -9,13 +9,14 @@ from torch.utils.data.dataset import random_split
 
 import torchvision
 from torchvision.transforms import InterpolationMode
+import torchvision.transforms.v2 as Transforms
 
 
 DATASETS_ROOT = pathlib.Path("D:/AI_datas")
 
 
-_DataAugmentation = Literal[None, "mostBasic", "basic", "basic+degrade", ]
-ImageTransform = Callable[[Image.Image], torch.Tensor]
+_DataAugmentation = Literal[None, "basic", "basic+degrade", ]
+ImageTransform = Callable[[Image.Image|torch.Tensor], torch.Tensor]
 # ImageClassification(**RESNET.ResNet50_Weights.IMAGENET1K_V2.transforms.keywords)
 
 
@@ -48,8 +49,7 @@ class SizedDataset(Dataset):
     def __len__(self) -> int:
         raise NotImplementedError
 
-    @staticmethod
-    def iterDataloader(loader: DataLoader, device: torch.device)->_DatasIterator:
+    def iterDataloader(self, loader: DataLoader, device: torch.device)->_DatasIterator:
         """simplify the way to get the batched datas from dataloader\n
         yield (x, y, idx) tensors that are alredy on the device"""
         raise NotImplementedError
@@ -67,16 +67,14 @@ class ClassifDatasetOutput(TypedDict):
 class ImagesClassifDataset(SizedDataset):
 
     def __init__(self, images:list[tuple[Image.Image, ImageClass]],
-                 transform:"ImageTransform|None", cacheTransforms:bool):
+                 cachableTransform:"ImageTransform", 
+                 finalTransform:"ImageTransform", ):
         self.images: list[tuple[Image.Image, ImageClass]] = []
         for img, cls in images:
             self.images.append((img, cls))
-        self.transformed: dict[int, tuple[torch.Tensor, ImageClass]]|None
-        self.transformed = ({} if cacheTransforms else None)
-        self.transform: ImageTransform
-        if transform is None:
-            self.transform = torchvision.transforms.ToTensor()
-        else: self.transform = transform
+        self.cachedTransformed: dict[int, tuple[torch.Tensor, ImageClass]] = {}
+        self.cachableTransform: "ImageTransform" = cachableTransform
+        self.finalTransform: "ImageTransform" = finalTransform
 
     def __len__(self):
         return len(self.images)
@@ -84,28 +82,26 @@ class ImagesClassifDataset(SizedDataset):
     def __getitem__(self, idx)->ClassifDatasetOutput:
         assert isinstance(idx, int)
         idx = int(idx)
-        if self.transformed is not None:
-            transformed = self.transformed.get(idx, None)
-        else: transformed = None
-        if transformed is not None:
-            image, cls = transformed
+        cached = self.cachedTransformed.get(idx, None)
+        if cached is not None:
+            image, cls = cached
         else:
             image, cls = self.images[idx]
-            image = self.transform(image)
-            if self.transformed is not None:
-                self.transformed[idx] = (image, cls)
+            image = self.cachableTransform(image)
+            self.cachedTransformed[idx] = (image, cls)
         return {'image': image, 'cls': cls, "index": idx}
 
-    @staticmethod
-    def iterDataloader(loader: DataLoader, device: torch.device)-> _DatasIterator:
+    def iterDataloader(self, loader: DataLoader, device: torch.device)-> _DatasIterator:
         for sample in loader:
-            yield (sample["image"].to(device), sample["cls"].to(device), sample["index"])
+            images = sample["image"].to(device)
+            images = self.finalTransform(images)
+            yield (images, sample["cls"].to(device), sample["index"])
 
 
 
 class HandleClassifDatas():
-    def __init__(self, fullDataset: SizedDataset,
-                 name: str, trainProp: float, nbClasses:int,
+    def __init__(self, fullDataset: SizedDataset, name: str, 
+                 trainProp: float, nbClasses:int,
                  batchSizeTrain: int, batchSizeTest: int) -> None:
         """setup the test/train split and their dataloader based on 
             a given set of images to use (consider that the index are alredy offsetted)"""
@@ -115,8 +111,8 @@ class HandleClassifDatas():
         nbSamplesTrain = int(len(self.full_dataset) * trainProp)
         self.dataset_train, self.dataset_test = random_split(
             self.full_dataset, lengths=[nbSamplesTrain, (len(self.full_dataset) - nbSamplesTrain)])
-        self.datasLoader_train = DataLoader(self.dataset_train, batch_size=batchSizeTrain, shuffle=True, num_workers=0)
-        self.datasLoader_test = DataLoader(self.dataset_test, batch_size=batchSizeTest, shuffle=True, num_workers=0)
+        self.datasLoader_train = DataLoader(self.dataset_train, batch_size=batchSizeTrain, shuffle=True)
+        self.datasLoader_test = DataLoader(self.dataset_test, batch_size=batchSizeTest, shuffle=True)
         print(f"loaded {self.name}(total: {len(self.full_dataset)}), "
               f"train: {len(self.dataset_train)} [{len(self.datasLoader_train)} batches] | "
               f"test: {len(self.dataset_test)} [{len(self.datasLoader_test)} batches]")
@@ -139,32 +135,29 @@ class HandleImagesClassifDatas(HandleClassifDatas):
                  dataAugemnt:"_DataAugmentation") -> None:
         """setup the test/train split and their dataloader based on 
             a given set of images to use (consider that the index are alredy offsetted)"""
-        norm = torchvision.transforms.Normalize(mean=[0.5]*3, std=[0.22]*3)
+        toTensor = [Transforms.ToImage(), Transforms.ToDtype(torch.float32, scale=True)]
+        norm = Transforms.Normalize(mean=[0.5]*3, std=[0.22]*3)
         basicTransforms = [
-            torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.RandomRotation(15, interpolation=InterpolationMode.BILINEAR, fill=0),
-            torchvision.transforms.RandomResizedCrop((32, 32), scale=(0.65, 1.5),  ratio=(1, 1))]
+            Transforms.RandomHorizontalFlip(),
+            Transforms.RandomRotation((-15, +15), interpolation=InterpolationMode.BILINEAR, fill=0),
+            Transforms.RandomResizedCrop((32, 32), scale=(0.65, 1.5),  ratio=(1, 1))]
         if dataAugemnt is None:
-            transform = None; cacheTransforms = True
-        elif dataAugemnt == "mostBasic":
-            cacheTransforms = False
-            transform = torchvision.transforms.Compose([
-                torchvision.transforms.ToTensor(), norm,])
+            cachableTransform = Transforms.Compose([*toTensor, norm, ])
+            finalTransform = (lambda x:x)
         elif dataAugemnt == "basic":
-            cacheTransforms = False
-            transform = torchvision.transforms.Compose([
-                torchvision.transforms.ToTensor(), norm, *basicTransforms])
+            cachableTransform = Transforms.Compose(toTensor)
+            finalTransform = Transforms.Compose([norm, *basicTransforms])
         elif dataAugemnt == "basic+degrade":
-            cacheTransforms = False
-            transform = torchvision.transforms.Compose([
-                torchvision.transforms.ToTensor(),
-                torchvision.transforms.ColorJitter(brightness=0.35, contrast=0.25, saturation=0.25, hue=0.03),
+            cachableTransform = Transforms.Compose(toTensor)
+            finalTransform = Transforms.Compose([
+                Transforms.ColorJitter(
+                    brightness=0.35, contrast=0.25, saturation=0.25, hue=0.03),
                 norm, *basicTransforms])
         else: raise ValueError(f"unknown data augemntation: {dataAugemnt!r}")
         super().__init__(
             fullDataset=ImagesClassifDataset(
-                images=images, transform=transform, cacheTransforms=cacheTransforms),
-            name=name, trainProp=trainProp, nbClasses=nbClasses,
+                images=images, cachableTransform=cachableTransform, finalTransform=finalTransform),
+            name=name, trainProp=trainProp, nbClasses=nbClasses, 
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
 
     @staticmethod
