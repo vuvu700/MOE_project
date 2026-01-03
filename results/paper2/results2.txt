@@ -418,9 +418,19 @@ table:
 | V3 medium + 6 expert top2  |  1'127'558 |        25 |        80.10% |       76.22% | 251.6 sec | 0.029 | 0.035 |  100% |
 | V4 medium + 6 expert top2  |  1'326'866 |        25 |        76.35% |       72.77% | 665.4 sec | 0.013 | 0.014 |  100% |
 |                            |            |           |               |              |           | 0.023 | 0.049 |  100% |
-| V5 medium + 6 expert top2  |    535'046 |        25 |        81.24% |       76.75% | 514.1 sec | 0.018 | 0.02 |  100% |
+| V5 medium + 6 expert top2  |    535'046 |        25 |        81.24% |       76.75% | 514.1 sec | 0.018 | 0.020 |  100% |
 --------------------------------------------------------------------------------------------------------------------------
-| V- large + 6 expert top2   |    ------- |        -- |        ------ |       ------ |  ---- sec | 0.___ | 0.___ |  100% |
+| V2 medium + 12 expert top2 |  3'890'834 |        25 |        83.35% |       77.31% | 228.0 sec | 0.019 | 0.074 |  100% |
+| V2 medium + 24 expert top2 |  7'445'930 |        25 |        83.02% |       77.19% | 319.4 sec | 0.020 | 0.044 |  100% |
+--------------------------------------------------------------------------------------------------------------------------
+| V1 large  + 1 expert top2  |  2'395'916 |        25 |        86.94% |       82.25% | 226.9 sec |     - |     - |  100% |
+| V1 large  + 6 expert top2  |  3'177'416 |        25 |        86.76% |       81.94% | 256.7 sec | 0.030 | 0.215 |  100% |
+| V2 large  + 6 expert top2  |  4'422'614 |        25 |        86.86% |       81.17% | 267.8 sec | 0.021 | 0.139 |  100% |
+| V3 large  + 6 expert top2  |  4'422'614 |        25 |        84.23% |       79.58% | 380.9 sec | 0.025 | 0.048 |  100% |
+| V4 large  + 6 expert top2  |  5'214'434 |        25 |        81.60% |       77.12% | 873.9 sec | 0.010 | 0.022 |  100% |
+|    (2 layers of MOE)       |            |           |               |              |           | 0.029 | 0.057 |  100% |
+--------------------------------------------------------------------------------------------------------------------------
+| V- large  + 6 expert top2  |  --------- |        -- |        ------ |       ------ | ----- sec | 0.___ | 0.___ |  100% |
 |    (2 layers of MOE)       |            |           |               |              |           | 0.___ | 0.___ |     - |
 --------------------------------------------------------------------------------------------------------------------------
 
@@ -649,6 +659,75 @@ perClassPred:
  [0.02 0.03 0.23 0.24 0.25 0.1  0.55 0.05 0.04 0.03]
  [0.16 0.05 0.24 0.28 0.29 0.21 0.09 0.39 0.06 0.08]]
 
+
+
+model = moeModel = MoE_models.paper2.VisionModelMoe.get_cifar_v2(
+    nbClasses=datasHandler.nbClasses, wImp=0.1, wLoad=0.1,
+    nbExperts=6, topK=2, modelConfig="medium", memoryMode=True).to(device)
+└── Model: 2_113_286 params
+    └── blocks: 2_113_286 params
+        ├── Block_CNN[0]: 432 params
+        ├── Block_CNN[1]: 4_672 params
+        ├── Block_CNN[2]: 9_216 params
+        ├── Block_CNN[3]: 18_432 params
+        ├── Block_CNN[4]: 73_728 params
+        ├── Block_CNN[5]: 221_568 params
+        ├── Block_FFD_Moe[6]: 1_777_548 params
+        │   ├── gating: 2_316 params
+        │   └── experts: 1_775_232 params
+        ├── Dropout[7]: 0 params
+        ├── Flatten[8]: 0 params
+        └── Linear[9]: 7_690 params
+Epoch 1, train: (loss: 1.61, accuracy: 40.72%), test: (loss: 1.811, accuracy: 41.41%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.278, accuracy: 54.23%), test: (loss: 1.482, accuracy: 47.82%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 1.108, accuracy: 60.90%), test: (loss: 1.148, accuracy: 60.19%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 0.983, accuracy: 65.40%), test: (loss: 1.111, accuracy: 61.39%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 0.9218, accuracy: 67.91%), test: (loss: 1.045, accuracy: 64.78%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.8491, accuracy: 70.61%), test: (loss: 1.11, accuracy: 64.43%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.8005, accuracy: 72.17%), test: (loss: 0.9288, accuracy: 67.97%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.7567, accuracy: 73.65%), test: (loss: 0.9262, accuracy: 69.27%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.7107, accuracy: 75.50%), test: (loss: 0.8724, accuracy: 70.10%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.6818, accuracy: 76.65%), test: (loss: 0.8854, accuracy: 70.07%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.6661, accuracy: 77.15%), test: (loss: 0.8201, accuracy: 72.54%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.6498, accuracy: 77.68%), test: (loss: 1.026, accuracy: 67.72%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.6175, accuracy: 79.02%), test: (loss: 0.7509, accuracy: 75.05%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.6085, accuracy: 79.00%), test: (loss: 0.7379, accuracy: 75.24%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.5712, accuracy: 80.54%), test: (loss: 0.776, accuracy: 74.16%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.5668, accuracy: 80.60%), test: (loss: 0.7524, accuracy: 75.00%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.5602, accuracy: 80.79%), test: (loss: 0.8507, accuracy: 72.05%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.5444, accuracy: 81.42%), test: (loss: 0.9303, accuracy: 70.23%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.5276, accuracy: 81.79%), test: (loss: 0.8032, accuracy: 73.88%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.5069, accuracy: 82.40%), test: (loss: 0.7684, accuracy: 74.28%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.5008, accuracy: 82.82%), test: (loss: 0.7129, accuracy: 76.17%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.486, accuracy: 83.43%), test: (loss: 0.6639, accuracy: 77.87%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.4849, accuracy: 83.37%), test: (loss: 0.6975, accuracy: 76.96%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.4707, accuracy: 83.77%), test: (loss: 0.7885, accuracy: 75.28%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.4588, accuracy: 83.93%), test: (loss: 0.6806, accuracy: 77.98%), lr: 1.0000e-03
+    -> best accuracy, train: 83.93% (epoch 25), test: 77.98% (epoch 25)
+eval (test) with no augments: (loss: 0.9697, accuracy: 74.32%)
+totalTime: 4 min 13.9 sec, trainTime: 3 min 48.5 sec, testTime: 25.410 sec
+{
+    all: 100.00%,
+    getBatch: 14.98%,
+    predict+loss: 24.60%,
+    backward: 44.12%,
+    step: 2.57%,
+    metrics_base: 0.55%,
+    metrics_moe: 1.84%,
+    evaluate: 10.01%,
+    progressBar: 1.03%,
+    other: 0.29%
+}
+-> RESULT
+mean: [0.216 0.155 0.17  0.177 0.146 0.136] (std: 0.026)
+std: [0.155 0.128 0.084 0.159 0.127 0.152] (mean: 0.134)
+perClassPred: 
+[[0.37 0.4  0.1  0.08 0.06 0.06 0.09 0.13 0.46 0.34]
+ [0.02 0.04 0.15 0.19 0.26 0.24 0.14 0.46 0.01 0.1 ]
+ [0.28 0.04 0.29 0.24 0.16 0.18 0.08 0.21 0.14 0.07]
+ [0.24 0.47 0.06 0.05 0.08 0.03 0.05 0.05 0.29 0.41]
+ [0.07 0.03 0.26 0.29 0.08 0.42 0.16 0.07 0.07 0.03]
+ [0.01 0.02 0.14 0.15 0.36 0.07 0.49 0.08 0.02 0.04]]
 
 
 model = moeModel = MoE_models.paper2.VisionModelMoe.get_cifar_v3(
@@ -1035,6 +1114,379 @@ model = moeModel = MoE_models.paper2.VisionModelMoe.get_cifar_v2(
         ├── Dropout[7]: 0 params
         ├── Flatten[8]: 0 params
         └── Linear[9]: 10_250 params
+Epoch 1, train: (loss: 1.661, accuracy: 38.57%), test: (loss: 1.732, accuracy: 40.44%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.35, accuracy: 51.35%), test: (loss: 1.462, accuracy: 50.25%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 1.173, accuracy: 58.26%), test: (loss: 1.38, accuracy: 53.11%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 1.046, accuracy: 63.08%), test: (loss: 1.186, accuracy: 59.80%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 0.9602, accuracy: 66.23%), test: (loss: 1.213, accuracy: 61.21%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.8672, accuracy: 69.58%), test: (loss: 0.9305, accuracy: 68.07%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.7963, accuracy: 72.30%), test: (loss: 0.9818, accuracy: 66.94%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.7524, accuracy: 73.80%), test: (loss: 0.8415, accuracy: 71.75%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.722, accuracy: 75.06%), test: (loss: 0.7857, accuracy: 73.44%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.6669, accuracy: 76.90%), test: (loss: 0.9153, accuracy: 70.73%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.639, accuracy: 77.92%), test: (loss: 0.8295, accuracy: 73.30%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.6144, accuracy: 78.92%), test: (loss: 0.8731, accuracy: 71.57%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.573, accuracy: 80.33%), test: (loss: 0.852, accuracy: 72.50%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.5646, accuracy: 80.55%), test: (loss: 0.7452, accuracy: 75.04%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.5261, accuracy: 82.07%), test: (loss: 0.8349, accuracy: 72.68%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.5095, accuracy: 82.37%), test: (loss: 0.7156, accuracy: 76.13%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.5068, accuracy: 82.64%), test: (loss: 0.7817, accuracy: 74.16%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.4907, accuracy: 83.02%), test: (loss: 0.6872, accuracy: 77.25%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.4529, accuracy: 84.26%), test: (loss: 0.7118, accuracy: 76.98%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.458, accuracy: 84.24%), test: (loss: 0.6116, accuracy: 79.55%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.4344, accuracy: 85.05%), test: (loss: 0.6331, accuracy: 78.93%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.427, accuracy: 85.33%), test: (loss: 0.628, accuracy: 79.46%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.4029, accuracy: 86.06%), test: (loss: 0.5949, accuracy: 80.64%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.4121, accuracy: 85.71%), test: (loss: 0.6385, accuracy: 79.46%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.3781, accuracy: 86.86%), test: (loss: 0.569, accuracy: 81.17%), lr: 1.0000e-03
+    -> best accuracy, train: 86.86% (epoch 25), test: 81.17% (epoch 25)
+eval (test) with no augments: (loss: 0.7002, accuracy: 79.48%)
+totalTime: 4 min 54.0 sec, trainTime: 4 min 27.8 sec, testTime: 26.207 sec
+{
+    all: 100.00%,
+    getBatch: 13.14%,
+    predict+loss: 22.79%,
+    backward: 49.06%,
+    step: 2.34%,
+    metrics_base: 0.51%,
+    metrics_moe: 1.62%,
+    evaluate: 8.92%,
+    progressBar: 1.37%,
+    other: 0.26%
+}
+-> RESULT
+mean: [0.195 0.17  0.144 0.191 0.138 0.162] (std: 0.021)
+std: [0.196 0.115 0.155 0.134 0.106 0.126] (mean: 0.139)
+perClassPred: 
+[[0.35 0.53 0.05 0.04 0.04 0.03 0.03 0.05 0.42 0.43]
+ [0.24 0.02 0.35 0.27 0.1  0.34 0.08 0.13 0.11 0.04]
+ [0.01 0.02 0.13 0.3  0.16 0.24 0.52 0.06 0.02 0.03]
+ [0.17 0.09 0.12 0.14 0.23 0.17 0.06 0.55 0.1  0.24]
+ [0.19 0.32 0.09 0.06 0.05 0.06 0.04 0.06 0.32 0.21]
+ [0.05 0.02 0.26 0.19 0.43 0.16 0.27 0.14 0.04 0.05]]
+
+
+
+
+model = moeModel = MoE_models.paper2.VisionModelMoe.get_cifar_v3(
+    nbClasses=datasHandler.nbClasses, wImp=0.1, wLoad=0.1,
+    nbExperts=6, topK=2, modelConfig="large", memoryMode=False).to(device)
+└── Model: 4_422_614 params
+    └── blocks: 4_422_614 params
+        ├── Block_CNN[0]: 1_728 params
+        ├── Block_CNN[1]: 73_984 params
+        ├── Block_CNN[2]: 147_456 params
+        ├── Block_CNN[3]: 147_456 params
+        ├── Block_CNN[4]: 294_912 params
+        ├── Block_FFD_Moe[5]: 3_156_492 params
+        │   ├── gating: 3_084 params
+        │   └── experts: 3_153_408 params
+        ├── Block_CNN[6]: 590_336 params
+        ├── Dropout[7]: 0 params
+        ├── Flatten[8]: 0 params
+        └── Linear[9]: 10_250 params
+Epoch 1, train: (loss: 1.715, accuracy: 37.51%), test: (loss: 1.759, accuracy: 40.12%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.378, accuracy: 50.56%), test: (loss: 1.454, accuracy: 49.59%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 1.228, accuracy: 56.65%), test: (loss: 1.236, accuracy: 57.33%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 1.097, accuracy: 61.38%), test: (loss: 1.158, accuracy: 59.83%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 1.007, accuracy: 64.86%), test: (loss: 1.417, accuracy: 56.40%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.9391, accuracy: 67.44%), test: (loss: 1.002, accuracy: 65.70%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.8773, accuracy: 69.55%), test: (loss: 1.078, accuracy: 65.14%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.8291, accuracy: 71.53%), test: (loss: 0.9184, accuracy: 68.36%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.779, accuracy: 73.25%), test: (loss: 0.8881, accuracy: 70.26%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.7439, accuracy: 74.36%), test: (loss: 0.8423, accuracy: 71.26%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.7074, accuracy: 75.93%), test: (loss: 0.8098, accuracy: 72.67%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.6873, accuracy: 76.41%), test: (loss: 0.9761, accuracy: 68.31%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.6542, accuracy: 77.52%), test: (loss: 0.7589, accuracy: 74.42%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.6257, accuracy: 78.54%), test: (loss: 0.8354, accuracy: 71.33%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.6212, accuracy: 79.12%), test: (loss: 0.7538, accuracy: 74.58%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.5867, accuracy: 79.95%), test: (loss: 0.6935, accuracy: 76.31%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.5875, accuracy: 80.05%), test: (loss: 0.7416, accuracy: 75.48%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.5591, accuracy: 81.11%), test: (loss: 0.695, accuracy: 77.12%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.5515, accuracy: 81.33%), test: (loss: 0.7176, accuracy: 76.12%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.5294, accuracy: 82.02%), test: (loss: 0.679, accuracy: 77.45%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.5163, accuracy: 82.56%), test: (loss: 0.7491, accuracy: 75.15%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.5024, accuracy: 82.92%), test: (loss: 0.7302, accuracy: 75.68%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.4922, accuracy: 83.25%), test: (loss: 0.668, accuracy: 77.57%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.4865, accuracy: 83.39%), test: (loss: 0.6395, accuracy: 78.65%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.4644, accuracy: 84.23%), test: (loss: 0.6128, accuracy: 79.58%), lr: 1.0000e-03
+    -> best accuracy, train: 84.23% (epoch 25), test: 79.58% (epoch 25)
+eval (test) with no augments: (loss: 0.8045, accuracy: 77.19%)
+totalTime: 7 min 2.9 sec, trainTime: 6 min 20.9 sec, testTime: 41.910 sec
+{
+    all: 100.00%,
+    getBatch: 8.78%,
+    predict+loss: 21.65%,
+    backward: 46.40%,
+    step: 1.56%,
+    metrics_base: 0.34%,
+    metrics_moe: 10.24%,
+    evaluate: 9.91%,
+    progressBar: 0.93%,
+    other: 0.18%
+}
+-> RESULT
+mean: [0.144 0.195 0.166 0.132 0.201 0.162] (std: 0.025)
+std: [0.043 0.077 0.037 0.026 0.051 0.051] (mean: 0.048)
+perClassPred: 
+[[0.1  0.1  0.17 0.17 0.21 0.16 0.16 0.2  0.08 0.11]
+ [0.29 0.22 0.21 0.17 0.12 0.13 0.12 0.12 0.36 0.19]
+ [0.12 0.14 0.14 0.14 0.19 0.13 0.26 0.18 0.17 0.16]
+ [0.1  0.13 0.11 0.17 0.13 0.13 0.15 0.12 0.1  0.18]
+ [0.29 0.15 0.23 0.2  0.22 0.24 0.11 0.24 0.2  0.14]
+ [0.1  0.25 0.14 0.15 0.14 0.2  0.21 0.14 0.09 0.22]]
+
+
+
+
+model = moeModel = MoE_models.paper2.VisionModelMoe.get_cifar_v4(
+    nbClasses=datasHandler.nbClasses, wImp=0.1, wLoad=0.1,
+    nbExperts=6, topK=2, modelConfig="large", memoryMode=False).to(device)
+└── Model: 5_214_434 params
+    └── blocks: 5_214_434 params
+        ├── Block_CNN[0]: 1_728 params
+        ├── Block_CNN[1]: 73_984 params
+        ├── Block_CNN[2]: 147_456 params
+        ├── Block_CNN[3]: 147_456 params
+        ├── Block_FFD_Moe[4]: 791_820 params
+        │   ├── gating: 1_548 params
+        │   └── experts: 790_272 params
+        ├── Block_CNN[5]: 294_912 params
+        ├── Block_FFD_Moe[6]: 3_156_492 params
+        │   ├── gating: 3_084 params
+        │   └── experts: 3_153_408 params
+        ├── Block_CNN[7]: 590_336 params
+        ├── Dropout[8]: 0 params
+        ├── Flatten[9]: 0 params
+        └── Linear[10]: 10_250 params
+Epoch 1, train: (loss: 1.787, accuracy: 34.86%), test: (loss: 1.668, accuracy: 40.58%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.47, accuracy: 47.46%), test: (loss: 1.542, accuracy: 47.72%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 1.31, accuracy: 53.81%), test: (loss: 1.395, accuracy: 51.70%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 1.197, accuracy: 58.25%), test: (loss: 1.361, accuracy: 54.38%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 1.102, accuracy: 61.75%), test: (loss: 1.219, accuracy: 58.53%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 1.027, accuracy: 64.34%), test: (loss: 1.064, accuracy: 63.50%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.9777, accuracy: 66.19%), test: (loss: 1.042, accuracy: 64.24%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.9198, accuracy: 68.40%), test: (loss: 1.054, accuracy: 64.02%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.8828, accuracy: 69.55%), test: (loss: 1.029, accuracy: 65.97%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.8483, accuracy: 71.06%), test: (loss: 0.9707, accuracy: 66.59%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.8261, accuracy: 71.87%), test: (loss: 0.9308, accuracy: 68.75%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.7752, accuracy: 73.55%), test: (loss: 1.057, accuracy: 65.81%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.7575, accuracy: 74.17%), test: (loss: 0.8221, accuracy: 72.57%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.7277, accuracy: 75.28%), test: (loss: 0.9314, accuracy: 69.44%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.7144, accuracy: 75.64%), test: (loss: 0.8018, accuracy: 73.41%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.6879, accuracy: 76.71%), test: (loss: 0.8291, accuracy: 73.64%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.6639, accuracy: 77.51%), test: (loss: 0.8071, accuracy: 73.08%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.662, accuracy: 77.58%), test: (loss: 0.8063, accuracy: 74.14%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.6352, accuracy: 78.73%), test: (loss: 0.8114, accuracy: 73.24%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.618, accuracy: 79.22%), test: (loss: 0.7999, accuracy: 74.28%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.6107, accuracy: 79.54%), test: (loss: 0.7136, accuracy: 76.36%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.5989, accuracy: 79.96%), test: (loss: 0.7386, accuracy: 75.51%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.5776, accuracy: 80.81%), test: (loss: 0.7106, accuracy: 76.59%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.5638, accuracy: 81.05%), test: (loss: 0.735, accuracy: 75.88%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.552, accuracy: 81.60%), test: (loss: 0.6953, accuracy: 77.12%), lr: 1.0000e-03
+    -> best accuracy, train: 81.60% (epoch 25), test: 77.12% (epoch 25)
+eval (test) with no augments: (loss: 0.6961, accuracy: 78.55%)
+totalTime: 16 min 38.0 sec, trainTime: 14 min 33.9 sec, testTime: 2 min 4.0 sec
+{
+    all: 100.00%,
+    getBatch: 3.93%,
+    predict+loss: 17.54%,
+    backward: 37.52%,
+    step: 0.94%,
+    metrics_base: 0.14%,
+    metrics_moe: 26.93%,
+    evaluate: 12.43%,
+    progressBar: 0.48%,
+    other: 0.10%
+}
+-> RESULT
+mean: [0.146 0.179 0.163 0.169 0.175 0.168] (std: 0.01)
+std: [0.018 0.037 0.022 0.016 0.014 0.026] (mean: 0.022)
+perClassPred: 
+[[0.11 0.15 0.14 0.15 0.15 0.16 0.17 0.15 0.12 0.16]
+ [0.12 0.13 0.19 0.18 0.24 0.19 0.2  0.22 0.13 0.15]
+ [0.15 0.2  0.15 0.17 0.13 0.16 0.18 0.15 0.16 0.2 ]
+ [0.2  0.16 0.18 0.16 0.18 0.16 0.16 0.16 0.19 0.15]
+ [0.2  0.18 0.18 0.18 0.16 0.17 0.16 0.16 0.2  0.17]
+ [0.21 0.18 0.17 0.17 0.14 0.17 0.13 0.15 0.21 0.17]]
+-> RESULT
+mean: [0.175 0.15  0.131 0.221 0.151 0.172] (std: 0.029)
+std: [0.056 0.037 0.048 0.072 0.077 0.05 ] (mean: 0.057)
+perClassPred: 
+[[0.15 0.27 0.12 0.15 0.14 0.17 0.19 0.15 0.15 0.3 ]
+ [0.12 0.12 0.16 0.16 0.19 0.12 0.24 0.13 0.13 0.13]
+ [0.09 0.21 0.09 0.12 0.08 0.17 0.14 0.14 0.08 0.21]
+ [0.16 0.15 0.23 0.28 0.28 0.26 0.26 0.32 0.11 0.12]
+ [0.3  0.09 0.2  0.17 0.09 0.17 0.05 0.09 0.25 0.09]
+ [0.18 0.16 0.2  0.13 0.23 0.11 0.13 0.16 0.28 0.14]]
+
+
+
+
+model = moeModel = MoE_models.paper2.VisionModelMoe.get_cifar_v2(
+    nbClasses=datasHandler.nbClasses, wImp=0.1, wLoad=0.1,
+    nbExperts=24, topK=2, modelConfig="medium", memoryMode=False).to(device)
+└── Model: 7_445_930 params
+    └── blocks: 7_445_930 params
+        ├── Block_CNN[0]: 432 params
+        ├── Block_CNN[1]: 4_672 params
+        ├── Block_CNN[2]: 9_216 params
+        ├── Block_CNN[3]: 18_432 params
+        ├── Block_CNN[4]: 73_728 params
+        ├── Block_CNN[5]: 221_568 params
+        ├── Block_FFD_Moe[6]: 7_110_192 params
+        │   ├── gating: 9_264 params
+        │   └── experts: 7_100_928 params
+        ├── Dropout[7]: 0 params
+        ├── Flatten[8]: 0 params
+        └── Linear[9]: 7_690 params
+Epoch 1, train: (loss: 1.761, accuracy: 36.84%), test: (loss: 2.077, accuracy: 37.24%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.404, accuracy: 51.16%), test: (loss: 1.499, accuracy: 50.20%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 1.235, accuracy: 57.55%), test: (loss: 1.476, accuracy: 52.83%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 1.128, accuracy: 61.46%), test: (loss: 1.318, accuracy: 56.80%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 1.033, accuracy: 65.38%), test: (loss: 1.3, accuracy: 59.46%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.9696, accuracy: 67.57%), test: (loss: 1.333, accuracy: 58.41%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.9006, accuracy: 70.25%), test: (loss: 1.081, accuracy: 66.31%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.8573, accuracy: 71.72%), test: (loss: 1.255, accuracy: 62.47%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.8136, accuracy: 72.95%), test: (loss: 1.02, accuracy: 67.78%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.7846, accuracy: 74.02%), test: (loss: 0.906, accuracy: 70.97%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.7491, accuracy: 75.44%), test: (loss: 0.9928, accuracy: 68.27%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.7084, accuracy: 76.59%), test: (loss: 0.88, accuracy: 71.73%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.6919, accuracy: 77.38%), test: (loss: 0.8021, accuracy: 74.29%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.6683, accuracy: 78.01%), test: (loss: 0.9176, accuracy: 71.07%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.6484, accuracy: 78.94%), test: (loss: 0.8522, accuracy: 73.35%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.6426, accuracy: 78.87%), test: (loss: 0.9213, accuracy: 72.46%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.6266, accuracy: 79.42%), test: (loss: 0.9694, accuracy: 69.14%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.6036, accuracy: 80.08%), test: (loss: 0.9892, accuracy: 71.29%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.5743, accuracy: 81.31%), test: (loss: 0.7822, accuracy: 75.04%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.5746, accuracy: 81.18%), test: (loss: 0.8538, accuracy: 73.57%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.5618, accuracy: 81.54%), test: (loss: 0.7726, accuracy: 75.92%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.5448, accuracy: 82.29%), test: (loss: 0.7739, accuracy: 75.50%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.5444, accuracy: 82.31%), test: (loss: 0.8728, accuracy: 73.40%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.5353, accuracy: 82.53%), test: (loss: 0.7347, accuracy: 77.19%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.521, accuracy: 83.02%), test: (loss: 0.7527, accuracy: 77.12%), lr: 1.0000e-03
+    -> best accuracy, train: 83.02% (epoch 25), test: 77.19% (epoch 24)
+eval (test) with no augments: (loss: 0.8513, accuracy: 76.59%)
+totalTime: 5 min 50.0 sec, trainTime: 5 min 19.4 sec, testTime: 30.568 sec
+{
+    all: 100.00%,
+    getBatch: 11.21%,
+    predict+loss: 21.77%,
+    backward: 47.29%,
+    step: 5.09%,
+    metrics_base: 0.41%,
+    metrics_moe: 3.99%,
+    evaluate: 8.73%,
+    progressBar: 1.16%,
+    other: 0.35%
+}
+-> RESULT
+mean: [0.047 0.074 0.032 0.054 0.023 0.    0.043 0.049 0.046 0.025 0.    0.035 0.049 0.077 0.031 0.028 0.022 0.051 0.055 0.072 0.039 0.047 0.027 0.074] (std: 0.02)
+std: [0.077 0.072 0.03  0.048 0.05  0.    0.033 0.044 0.026 0.054 0.    0.043 0.055 0.061 0.039 0.019 0.038 0.032 0.042 0.067 0.054 0.074 0.033 0.066] (mean: 0.044)
+perClassPred: 
+[[0.12 0.02 0.02 0.01 0.02 0.01 0.01 0.   0.26 0.01]
+ [0.01 0.01 0.02 0.08 0.17 0.09 0.06 0.23 0.   0.03]
+ [0.11 0.04 0.03 0.02 0.01 0.01 0.   0.02 0.04 0.02]
+ [0.01 0.04 0.01 0.07 0.02 0.05 0.08 0.03 0.03 0.18]
+ [0.03 0.17 0.01 0.   0.   0.   0.   0.   0.03 0.02]
+ [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+ [0.05 0.02 0.13 0.05 0.03 0.03 0.03 0.06 0.02 0.01]
+ [0.03 0.09 0.05 0.03 0.03 0.03 0.02 0.03 0.02 0.17]
+ [0.09 0.02 0.08 0.04 0.08 0.03 0.04 0.06 0.02 0.01]
+ [0.   0.   0.03 0.02 0.02 0.02 0.19 0.   0.01 0.  ]
+ [0.   0.   0.   0.   0.   0.   0.   0.   0.   0.  ]
+ [0.   0.   0.06 0.02 0.03 0.15 0.01 0.04 0.   0.01]
+ [0.09 0.06 0.01 0.01 0.01 0.   0.   0.02 0.11 0.18]
+ [0.03 0.04 0.06 0.18 0.04 0.2  0.03 0.08 0.04 0.03]
+ [0.01 0.   0.06 0.01 0.11 0.01 0.1  0.01 0.01 0.01]
+ [0.02 0.01 0.07 0.05 0.02 0.04 0.02 0.03 0.01 0.01]
+ [0.   0.   0.01 0.01 0.05 0.01 0.13 0.02 0.   0.  ]
+ [0.07 0.04 0.03 0.02 0.07 0.01 0.01 0.12 0.07 0.05]
+ [0.08 0.01 0.07 0.03 0.09 0.02 0.01 0.15 0.05 0.03]
+ [0.02 0.02 0.07 0.17 0.14 0.07 0.2  0.02 0.02 0.01]
+ [0.13 0.04 0.02 0.01 0.01 0.   0.   0.   0.16 0.03]
+ [0.05 0.25 0.01 0.01 0.01 0.01 0.   0.02 0.03 0.12]
+ [0.05 0.09 0.   0.01 0.   0.   0.   0.   0.08 0.05]
+ [0.01 0.   0.12 0.16 0.05 0.21 0.06 0.06 0.01 0.02]]
+
+
+
+
+
+
+model = moeModel = MoE_models.paper2.VisionModelMoe.get_cifar_v2(
+    nbClasses=datasHandler.nbClasses, wImp=0.1, wLoad=0.1,
+    nbExperts=12, topK=2, modelConfig="medium", memoryMode=False).to(device)
+└── Model: 3_890_834 params
+    └── blocks: 3_890_834 params
+        ├── Block_CNN[0]: 432 params
+        ├── Block_CNN[1]: 4_672 params
+        ├── Block_CNN[2]: 9_216 params
+        ├── Block_CNN[3]: 18_432 params
+        ├── Block_CNN[4]: 73_728 params
+        ├── Block_CNN[5]: 221_568 params
+        ├── Block_FFD_Moe[6]: 3_555_096 params
+        │   ├── gating: 4_632 params
+        │   └── experts: 3_550_464 params
+        ├── Dropout[7]: 0 params
+        ├── Flatten[8]: 0 params
+        └── Linear[9]: 7_690 params
+Epoch 1, train: (loss: 1.706, accuracy: 37.37%), test: (loss: 1.693, accuracy: 42.27%), lr: 1.0000e-03
+        Epoch 2, train: (loss: 1.359, accuracy: 51.23%), test: (loss: 1.766, accuracy: 41.08%), lr: 1.0000e-03
+        Epoch 3, train: (loss: 1.209, accuracy: 57.21%), test: (loss: 1.358, accuracy: 54.47%), lr: 1.0000e-03
+        Epoch 4, train: (loss: 1.092, accuracy: 61.73%), test: (loss: 1.333, accuracy: 56.97%), lr: 1.0000e-03
+        Epoch 5, train: (loss: 0.9906, accuracy: 65.51%), test: (loss: 1.181, accuracy: 60.32%), lr: 1.0000e-03
+        Epoch 6, train: (loss: 0.9236, accuracy: 68.05%), test: (loss: 1.125, accuracy: 63.48%), lr: 1.0000e-03
+        Epoch 7, train: (loss: 0.8794, accuracy: 69.52%), test: (loss: 1.088, accuracy: 63.99%), lr: 1.0000e-03
+        Epoch 8, train: (loss: 0.8255, accuracy: 71.67%), test: (loss: 1.184, accuracy: 62.71%), lr: 1.0000e-03
+        Epoch 9, train: (loss: 0.7761, accuracy: 73.37%), test: (loss: 0.9057, accuracy: 69.35%), lr: 1.0000e-03
+        Epoch 10, train: (loss: 0.7341, accuracy: 74.80%), test: (loss: 1.041, accuracy: 65.89%), lr: 1.0000e-03
+        Epoch 11, train: (loss: 0.7302, accuracy: 75.17%), test: (loss: 0.9411, accuracy: 68.96%), lr: 1.0000e-03
+        Epoch 12, train: (loss: 0.6828, accuracy: 76.57%), test: (loss: 0.8903, accuracy: 70.99%), lr: 1.0000e-03
+        Epoch 13, train: (loss: 0.6747, accuracy: 76.96%), test: (loss: 0.786, accuracy: 73.64%), lr: 1.0000e-03
+        Epoch 14, train: (loss: 0.6491, accuracy: 77.86%), test: (loss: 0.7971, accuracy: 73.18%), lr: 1.0000e-03
+        Epoch 15, train: (loss: 0.6283, accuracy: 78.39%), test: (loss: 0.7749, accuracy: 74.32%), lr: 1.0000e-03
+        Epoch 16, train: (loss: 0.6067, accuracy: 79.12%), test: (loss: 0.8361, accuracy: 72.60%), lr: 1.0000e-03
+        Epoch 17, train: (loss: 0.5886, accuracy: 79.87%), test: (loss: 0.8224, accuracy: 73.30%), lr: 1.0000e-03
+        Epoch 18, train: (loss: 0.5754, accuracy: 80.19%), test: (loss: 0.8107, accuracy: 73.61%), lr: 1.0000e-03
+        Epoch 19, train: (loss: 0.578, accuracy: 80.17%), test: (loss: 0.7808, accuracy: 74.88%), lr: 1.0000e-03
+        Epoch 20, train: (loss: 0.5446, accuracy: 81.38%), test: (loss: 0.784, accuracy: 74.35%), lr: 1.0000e-03
+        Epoch 21, train: (loss: 0.5434, accuracy: 81.40%), test: (loss: 0.784, accuracy: 74.70%), lr: 1.0000e-03
+        Epoch 22, train: (loss: 0.519, accuracy: 82.19%), test: (loss: 0.794, accuracy: 74.40%), lr: 1.0000e-03
+        Epoch 23, train: (loss: 0.5122, accuracy: 82.39%), test: (loss: 0.788, accuracy: 74.33%), lr: 1.0000e-03
+        Epoch 24, train: (loss: 0.4994, accuracy: 83.03%), test: (loss: 0.7816, accuracy: 74.52%), lr: 1.0000e-03
+        Epoch 25, train: (loss: 0.4877, accuracy: 83.35%), test: (loss: 0.724, accuracy: 77.31%), lr: 1.0000e-03
+    -> best accuracy, train: 83.35% (epoch 25), test: 77.31% (epoch 25)
+eval (test) with no augments: (loss: 0.8655, accuracy: 76.26%)
+totalTime: 4 min 12.9 sec, trainTime: 3 min 48.0 sec, testTime: 24.851 sec
+{
+    all: 100.00%,
+    getBatch: 16.10%,
+    predict+loss: 21.76%,
+    backward: 43.46%,
+    step: 3.58%,
+    metrics_base: 0.62%,
+    metrics_moe: 3.19%,
+    evaluate: 9.83%,
+    progressBar: 1.09%,
+    other: 0.38%
+}
+-> RESULT
+mean: [0.098 0.085 0.098 0.064 0.116 0.085 0.098 0.073 0.044 0.095 0.077 0.067] (std: 0.019)
+std: [0.098 0.089 0.074 0.08  0.055 0.101 0.128 0.057 0.031 0.033 0.058 0.079] (mean: 0.074)
+perClassPred: 
+[[0.01 0.01 0.11 0.07 0.23 0.09 0.14 0.31 0.01 0.01]
+ [0.02 0.01 0.13 0.22 0.04 0.27 0.03 0.08 0.01 0.02]
+ [0.23 0.08 0.11 0.07 0.04 0.03 0.1  0.02 0.24 0.05]
+ [0.02 0.26 0.02 0.02 0.04 0.02 0.03 0.07 0.01 0.18]
+ [0.06 0.02 0.13 0.17 0.22 0.15 0.09 0.1  0.12 0.1 ]
+ [0.08 0.31 0.02 0.02 0.02 0.01 0.01 0.03 0.17 0.21]
+ [0.01 0.01 0.12 0.1  0.2  0.04 0.44 0.02 0.01 0.02]
+ [0.02 0.1  0.03 0.07 0.02 0.14 0.05 0.07 0.01 0.2 ]
+ [0.02 0.   0.1  0.07 0.05 0.05 0.06 0.08 0.01 0.01]
+ [0.1  0.07 0.08 0.09 0.07 0.13 0.02 0.13 0.12 0.12]
+ [0.22 0.03 0.13 0.09 0.06 0.06 0.02 0.06 0.06 0.01]
+ [0.2  0.09 0.02 0.01 0.02 0.   0.01 0.02 0.22 0.07]]
 
 
 
