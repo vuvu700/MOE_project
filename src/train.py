@@ -13,7 +13,7 @@ import MoE_models.paper1
 import MoE_models.paper2
 
 from holo.__typing import assertListSubType
-from holo.profilers import ProgressBar, Profiler
+from holo.profilers import ProgressBar, Profiler, SimpleProfiler
 from holo.prettyFormats import prettyPrint, prettyTime
 
 
@@ -61,6 +61,7 @@ class ResultClassif():
     loss: float
     confusionMatrix: "ConfusionMatrix"
     moeExpertsInsigths: "MoeExpertsInsigths|None"
+    time: float
     
     def accuracy(self)->float:
         return self.confusionMatrix.accuracy()
@@ -77,8 +78,17 @@ class EpochResultClassif():
     
     def __str__(self) -> str:
         return f"Epoch {self.epochID}, train: {self.train}, test: {self.test}, lr: {self.lr:.4e}"
+    
+    def epochTime(self)->float:
+        return (self.train.time + self.test.time)
 
 class HistoryClassification(list[EpochResultClassif]):
+    
+    def totalTimes(self)->tuple[float, float, float]:
+        """return (totalTime, totalTrainTime, totalTestTime)"""
+        trainTime = sum(r.train.time for r in self)
+        testTime = sum(r.test.time for r in self)
+        return (trainTime+testTime, trainTime, testTime)
     
     def _fig(self, nrows:int):
         axs: list[Axes]
@@ -224,6 +234,7 @@ class TrainerClassif():
         startEpochID: int = (0 if len(self.history) == 0 else self.history[-1].epochID)
         with _prof.mesure("all"):
             for epochID in range(startEpochID+1, (startEpochID+1+nbEpoches)):
+                spTrain = SimpleProfiler("train").__enter__()
                 running_loss = 0.0
                 trainConfMatrix = ConfusionMatrix(nbClasses=nbClasses)
                 moeExpertsInsigths: "MoeExpertsInsigths|None" = None
@@ -252,14 +263,15 @@ class TrainerClassif():
                             moeExpertsInsigths, outputs, labels)
                     with _prof.mesure("progressBar"):
                         pbar.step(1)
+                meanLoss = (running_loss / len(datasTrain))
+                spTrain.__exit__()
                 self.model.eval()
                 with _prof.mesure("evaluate"):
                     testResult = self.eval_model_classif(
                         datas=datasTest, nbClasses=nbClasses, verbose=True)
-                meanLoss = (running_loss / len(datasTrain))
                 trainResult = ResultClassif(
                     loss=meanLoss, confusionMatrix=trainConfMatrix, 
-                    moeExpertsInsigths=moeExpertsInsigths)
+                    moeExpertsInsigths=moeExpertsInsigths, time=spTrain.time())
                 self.history.append(EpochResultClassif(
                     epochID, trainResult, testResult,
                     lr=self.optimizer.param_groups[0]['lr']))
@@ -278,6 +290,7 @@ class TrainerClassif():
         confMatrix = ConfusionMatrix(nbClasses=nbClasses)
         moeExpertsInsigths: "MoeExpertsInsigths|None" = None
         pbar = self._getPBar(len(datas), "test batches")
+        spTest = SimpleProfiler("evaluate").__enter__()
         self.model.eval()
         for inputs, labels, _ in datas(self.device):
             with torch.no_grad():
@@ -290,9 +303,10 @@ class TrainerClassif():
             if verbose is True:
                 pbar.step()
         meanLoss = (running_loss / len(datas))
+        spTest.__exit__()
         return ResultClassif(
             loss=meanLoss, confusionMatrix=confMatrix,
-            moeExpertsInsigths=moeExpertsInsigths)
+            moeExpertsInsigths=moeExpertsInsigths, time=spTest.time())
     
     def forwardAndLoss(
             self, inputs:torch.Tensor, labels:torch.Tensor,

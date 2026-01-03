@@ -8,12 +8,13 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import random_split
 
 import torchvision
-import torchvision.models.resnet as RESNET
-from torchvision.transforms._presets import ImageClassification
+from torchvision.transforms import InterpolationMode
 
 
 DATASETS_ROOT = pathlib.Path("D:/AI_datas")
 
+
+_DataAugmentation = Literal[None, "mostBasic", "basic", "basic+degrade", ]
 ImageTransform = Callable[[Image.Image], torch.Tensor]
 # ImageClassification(**RESNET.ResNet50_Weights.IMAGENET1K_V2.transforms.keywords)
 
@@ -65,17 +66,17 @@ class ClassifDatasetOutput(TypedDict):
 
 class ImagesClassifDataset(SizedDataset):
 
-    def __init__(self, images: list[tuple[Image.Image, ImageClass]],
-                 transform: ImageTransform | None = None):
+    def __init__(self, images:list[tuple[Image.Image, ImageClass]],
+                 transform:"ImageTransform|None", cacheTransforms:bool):
         self.images: list[tuple[Image.Image, ImageClass]] = []
         for img, cls in images:
             self.images.append((img, cls))
-        self.transformed: dict[int, tuple[torch.Tensor, ImageClass]] = {}
+        self.transformed: dict[int, tuple[torch.Tensor, ImageClass]]|None
+        self.transformed = ({} if cacheTransforms else None)
         self.transform: ImageTransform
         if transform is None:
             self.transform = torchvision.transforms.ToTensor()
-        else:
-            self.transform = transform
+        else: self.transform = transform
 
     def __len__(self):
         return len(self.images)
@@ -83,13 +84,16 @@ class ImagesClassifDataset(SizedDataset):
     def __getitem__(self, idx)->ClassifDatasetOutput:
         assert isinstance(idx, int)
         idx = int(idx)
-        transformed = self.transformed.get(idx, None)
+        if self.transformed is not None:
+            transformed = self.transformed.get(idx, None)
+        else: transformed = None
         if transformed is not None:
             image, cls = transformed
         else:
             image, cls = self.images[idx]
             image = self.transform(image)
-            self.transformed[idx] = (image, cls)
+            if self.transformed is not None:
+                self.transformed[idx] = (image, cls)
         return {'image': image, 'cls': cls, "index": idx}
 
     @staticmethod
@@ -131,17 +135,42 @@ class HandleImagesClassifDatas(HandleClassifDatas):
     full_dataset: ImagesClassifDataset
     
     def __init__(self, images: list[tuple[Image.Image, ImageClass]], name: str,
-                 nbClasses: int, trainProp: float, batchSizeTrain: int, batchSizeTest: int) -> None:
+                 nbClasses: int, trainProp: float, batchSizeTrain: int, batchSizeTest: int,
+                 dataAugemnt:"_DataAugmentation") -> None:
         """setup the test/train split and their dataloader based on 
             a given set of images to use (consider that the index are alredy offsetted)"""
+        norm = torchvision.transforms.Normalize(mean=[0.5]*3, std=[0.22]*3)
+        basicTransforms = [
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomRotation(15, interpolation=InterpolationMode.BILINEAR, fill=0),
+            torchvision.transforms.RandomResizedCrop((32, 32), scale=(0.65, 1.5),  ratio=(1, 1))]
+        if dataAugemnt is None:
+            transform = None; cacheTransforms = True
+        elif dataAugemnt == "mostBasic":
+            cacheTransforms = False
+            transform = torchvision.transforms.Compose([
+                torchvision.transforms.ToTensor(), norm,])
+        elif dataAugemnt == "basic":
+            cacheTransforms = False
+            transform = torchvision.transforms.Compose([
+                torchvision.transforms.ToTensor(), norm, *basicTransforms])
+        elif dataAugemnt == "basic+degrade":
+            cacheTransforms = False
+            transform = torchvision.transforms.Compose([
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.ColorJitter(brightness=0.35, contrast=0.25, saturation=0.25, hue=0.03),
+                norm, *basicTransforms])
+        else: raise ValueError(f"unknown data augemntation: {dataAugemnt!r}")
         super().__init__(
-            fullDataset=ImagesClassifDataset(images=images, transform=None),
+            fullDataset=ImagesClassifDataset(
+                images=images, transform=transform, cacheTransforms=cacheTransforms),
             name=name, trainProp=trainProp, nbClasses=nbClasses,
             batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
 
     @staticmethod
     def merge(*handlers:"HandleImagesClassifDatas", trainProp:float, 
-              batchSizeTrain:int, batchSizeTest:int)->"HandleImagesClassifDatas":
+              batchSizeTrain:int, batchSizeTest:int, 
+              dataAugemnt:"_DataAugmentation")->"HandleImagesClassifDatas":
         allImages: list[tuple[Image.Image, ImageClass]] = []
         currentNbClasses: int = 0
         for dataset in handlers:
@@ -153,15 +182,15 @@ class HandleImagesClassifDatas(HandleClassifDatas):
             images=allImages, nbClasses=currentNbClasses,
             name=f"Merged[{', '.join([dts.name for dts in handlers])}]",
             trainProp=trainProp, batchSizeTrain=batchSizeTrain,
-            batchSizeTest=batchSizeTest)
+            batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 
     
 
 class MNIST_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
-                 trainProp: float,
-                 batchSizeTrain: int, batchSizeTest: int) -> None:
+                 trainProp: float, batchSizeTrain: int, batchSizeTest: int, 
+                 dataAugemnt:"_DataAugmentation"=None) -> None:
         self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
@@ -172,12 +201,13 @@ class MNIST_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name="MNIST", trainProp=trainProp, nbClasses=10,
-            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 
 class FashionMNIST_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
-                 trainProp: float, batchSizeTrain: int, batchSizeTest: int) -> None:
+                 trainProp: float, batchSizeTrain: int, batchSizeTest: int, 
+                 dataAugemnt:"_DataAugmentation"=None) -> None:
         self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
@@ -188,11 +218,12 @@ class FashionMNIST_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name="FashionMNIST", trainProp=trainProp, nbClasses=10,
-            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 class Cifar10_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
-                 trainProp: float, batchSizeTrain: int, batchSizeTest: int) -> None:
+                 trainProp: float, batchSizeTrain: int, batchSizeTest: int, 
+                 dataAugemnt:"_DataAugmentation"=None) -> None:
         self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
@@ -203,11 +234,12 @@ class Cifar10_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name="Cifar10", trainProp=trainProp, nbClasses=10,
-            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 class Cifar100_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
-                 trainProp: float, batchSizeTrain: int, batchSizeTest: int) -> None:
+                 trainProp: float, batchSizeTrain: int, batchSizeTest: int, 
+                 dataAugemnt:"_DataAugmentation"=None) -> None:
         self.fromTrainSource: bool|None = fromTrainSource
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in ([True, False] if fromTrainSource is None else [fromTrainSource]):
@@ -218,5 +250,5 @@ class Cifar100_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name="Cifar100", trainProp=trainProp, nbClasses=100,
-            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest)
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 

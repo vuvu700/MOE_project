@@ -5,10 +5,6 @@ import torch
 import typing
 import attrs
 
-from holo.calc import product
-
-_version = typing.Literal["original", "originalWithCE", "logLikelihood", ]
-
 
 
 class Block_CNN(torch.nn.Module):
@@ -59,16 +55,18 @@ class GatingWithNoise(torch.nn.Module):
 class Block_FFD_Moe(torch.nn.Module):
     def __init__(
             self, nbIn:int, nbOut:int, nbExperts:int,
-            topK:int, fromCNN:bool) -> None:
+            topK:int, fromCNN:bool, memMode:bool=False) -> None:
         super().__init__()
         self.topK: int = topK
         self.fromCNN: bool = fromCNN
+        self.memEfficientMode: bool = memMode
         self.nbOut: int = nbOut
         self.gating = GatingWithNoise(nbIn, nbExperts)
+        nbHidden = max(nbIn, nbOut) * 4
         self.experts = torch.nn.ModuleList([
             torch.nn.Sequential(
-                torch.nn.Linear(nbIn, nbIn*4), torch.nn.ReLU(),
-                torch.nn.Linear(nbIn*4, nbOut))
+                torch.nn.Linear(nbIn, nbHidden), torch.nn.ReLU(),
+                torch.nn.Linear(nbHidden, nbOut))
             for _ in range(nbExperts)])
 
     @property
@@ -97,16 +95,20 @@ class Block_FFD_Moe(torch.nn.Module):
         allExperts_weigths = torch.zeros((batchSize2, self.nbExperts), device=x.device) # (batch, experts)
         allExperts_weigths.scatter_(dim=1, index=topK_indices, src=gatingProb)
 
-        xOut = torch.zeros((batchSize2, self.nbOut), device=x.device)
-        for iExpert in range(self.nbExperts):
-            expertUse, *_ = torch.where((topK_indices == iExpert).any(dim=1))
-            if expertUse.shape[0] == 0:
-                continue # expert isn't used
-            expertOuts = self.experts[iExpert](x[expertUse])
-            expertGates = allExperts_weigths[expertUse, iExpert].unsqueeze(dim=1)
-            res = (expertGates * expertOuts)
-            xOut.index_add_(dim=0, index=expertUse, source=res)
-
+        if self.memEfficientMode is True:
+            xOut = torch.zeros((batchSize2, self.nbOut), device=x.device)
+            for iExpert in range(self.nbExperts):
+                expertUse, *_ = torch.where((topK_indices == iExpert).any(dim=1))
+                if expertUse.shape[0] == 0:
+                    continue # expert isn't used
+                expertOuts = self.experts[iExpert](x[expertUse])
+                expertGates = allExperts_weigths[expertUse, iExpert].unsqueeze(dim=1)
+                res = (expertGates * expertOuts)
+                xOut.index_add_(dim=0, index=expertUse, source=res)
+        else: 
+            expertsOut = torch.stack([expert(x) for expert in self.experts], dim=2)
+            xOut = torch.sum(allExperts_weigths[:, None, :] * expertsOut, dim=2)
+        
         if self.fromCNN:
             xOut = xOut.reshape(batchSize, H, W, self.nbOut) # (B, H, W, C)
             xOut = xOut.permute(0, 3, 1, 2) # (B, C, H, W)
@@ -167,7 +169,7 @@ class VisionModelMoe(torch.nn.Module):
     def get_cifar_v1(
             nbClasses:int, nbExperts:int, topK:int,
             modelConfig:typing.Literal["small", "medium", "large"],
-            wImp:float, wLoad:float, dropout=0.25)->"VisionModelMoe":
+            wImp:float, wLoad:float, memoryMode:bool, dropout=0.25)->"VisionModelMoe":
         """the V1 will use MOE at the end of the network to output the logits"""
         if modelConfig == "small":
             return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
@@ -177,7 +179,7 @@ class VisionModelMoe(torch.nn.Module):
                 Block_CNN(nbIn=32, nbOut=48, usePadding=False, useBatchNorm=False, usePool=True),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (48 x 2 x 2)
                 torch.nn.Linear((48*2*2), 48), # reduce dim to avoid exploding MoE (... per experts)
-                Block_FFD_Moe(nbIn=48, nbOut=nbClasses, nbExperts=nbExperts, topK=topK, fromCNN=False)])
+                Block_FFD_Moe(nbIn=48, nbOut=nbClasses, nbExperts=nbExperts, topK=topK, fromCNN=False, memMode=memoryMode)])
         elif modelConfig == "medium":
             return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
                 Block_CNN(nbIn=3, nbOut=16, usePadding=True, useBatchNorm=False, usePool=False),
@@ -188,7 +190,7 @@ class VisionModelMoe(torch.nn.Module):
                 Block_CNN(nbIn=128, nbOut=192, usePadding=False, useBatchNorm=True, usePool=True),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (198 x 2 x 2)
                 torch.nn.Linear((192*2*2), 128), # reduce dim to avoid exploding MoE (... per experts)
-                Block_FFD_Moe(nbIn=128, nbOut=nbClasses, nbExperts=nbExperts, topK=topK, fromCNN=False)])
+                Block_FFD_Moe(nbIn=128, nbOut=nbClasses, nbExperts=nbExperts, topK=topK, fromCNN=False, memMode=memoryMode)])
         elif modelConfig == "large":
             return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
                 Block_CNN(nbIn=3, nbOut=64, usePadding=True, useBatchNorm=False, usePool=False),
@@ -199,7 +201,7 @@ class VisionModelMoe(torch.nn.Module):
                 Block_CNN(nbIn=256, nbOut=512, usePadding=False, useBatchNorm=True, usePool=True),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (512 x 2 x 2)
                 torch.nn.Linear((512*2*2), 192), # reduce dim to avoid exploding MoE (... per experts)
-                Block_FFD_Moe(nbIn=192, nbOut=nbClasses, nbExperts=nbExperts, topK=topK, fromCNN=False)])
+                Block_FFD_Moe(nbIn=192, nbOut=nbClasses, nbExperts=nbExperts, topK=topK, fromCNN=False, memMode=memoryMode)])
         else:
             raise ValueError(f"unknown {modelConfig = }")
     
@@ -207,15 +209,15 @@ class VisionModelMoe(torch.nn.Module):
     def get_cifar_v2(
             nbClasses:int, nbExperts:int, topK:int,
             modelConfig:typing.Literal["small", "medium", "large"],
-            wImp:float, wLoad:float, dropout=0.25)->"VisionModelMoe":
-        """the V2 will use MOE before flattening in order to utilise the efficiency of bigger batches"""
+            wImp:float, wLoad:float, memoryMode:bool, dropout=0.25)->"VisionModelMoe":
+        """the V2 will use MOE rigth before flattening"""
         if modelConfig == "small":
             return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
                 Block_CNN(nbIn=3, nbOut=16, usePadding=True, useBatchNorm=False, usePool=True),
                 Block_CNN(nbIn=16, nbOut=24, usePadding=True, useBatchNorm=True, usePool=True),
                 Block_CNN(nbIn=24, nbOut=32, usePadding=False, useBatchNorm=False, usePool=False),
                 Block_CNN(nbIn=32, nbOut=48, usePadding=False, useBatchNorm=False, usePool=True),
-                Block_FFD_Moe(nbIn=48, nbOut=48, nbExperts=nbExperts, topK=topK, fromCNN=True),
+                Block_FFD_Moe(nbIn=48, nbOut=48, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (48 x 2 x 2)
                 torch.nn.Linear((48*2*2), nbClasses)])
         elif modelConfig == "medium":
@@ -226,7 +228,7 @@ class VisionModelMoe(torch.nn.Module):
                 Block_CNN(nbIn=32, nbOut=64, usePadding=True, useBatchNorm=False, usePool=False),
                 Block_CNN(nbIn=64, nbOut=128, usePadding=False, useBatchNorm=False, usePool=True),
                 Block_CNN(nbIn=128, nbOut=192, usePadding=False, useBatchNorm=True, usePool=True),
-                Block_FFD_Moe(nbIn=192, nbOut=192, nbExperts=nbExperts, topK=topK, fromCNN=True),
+                Block_FFD_Moe(nbIn=192, nbOut=192, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (198 x 2 x 2)
                 torch.nn.Linear((192*2*2), nbClasses)])
         elif modelConfig == "large":
@@ -237,7 +239,7 @@ class VisionModelMoe(torch.nn.Module):
                 Block_CNN(nbIn=128, nbOut=128, usePadding=True, useBatchNorm=False, usePool=False),
                 Block_CNN(nbIn=128, nbOut=256, usePadding=False, useBatchNorm=False, usePool=True),
                 Block_CNN(nbIn=256, nbOut=256, usePadding=False, useBatchNorm=True, usePool=True),
-                Block_FFD_Moe(nbIn=256, nbOut=256, nbExperts=nbExperts, topK=topK, fromCNN=True),
+                Block_FFD_Moe(nbIn=256, nbOut=256, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (256 x 2 x 2)
                 torch.nn.Linear((256*2*2), nbClasses),])
         else:
@@ -247,15 +249,14 @@ class VisionModelMoe(torch.nn.Module):
     def get_cifar_v3(
             nbClasses:int, nbExperts:int, topK:int,
             modelConfig:typing.Literal["small", "medium", "large"],
-            wImp:float, wLoad:float, dropout=0.25)->"VisionModelMoe":
-        """the V3 will use multiple MOE before flattening in order to utilise the efficiency of big batches"""
+            wImp:float, wLoad:float, memoryMode:bool, dropout=0.25)->"VisionModelMoe":
+        """the V3 will use MOE before the last CNN"""
         if modelConfig == "small":
             return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
                 Block_CNN(nbIn=3, nbOut=16, usePadding=True, useBatchNorm=False, usePool=True),
                 Block_CNN(nbIn=16, nbOut=24, usePadding=True, useBatchNorm=True, usePool=True),
-                Block_FFD_Moe(nbIn=24, nbOut=24, nbExperts=nbExperts, topK=topK, fromCNN=True),
                 Block_CNN(nbIn=24, nbOut=32, usePadding=False, useBatchNorm=False, usePool=False),
-                Block_FFD_Moe(nbIn=32, nbOut=32, nbExperts=nbExperts, topK=topK, fromCNN=True),
+                Block_FFD_Moe(nbIn=32, nbOut=32, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
                 Block_CNN(nbIn=32, nbOut=48, usePadding=False, useBatchNorm=False, usePool=True),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (48 x 2 x 2)
                 torch.nn.Linear((48*2*2), nbClasses)])
@@ -265,9 +266,8 @@ class VisionModelMoe(torch.nn.Module):
                 Block_CNN(nbIn=16, nbOut=32, usePadding=True, useBatchNorm=True, usePool=True),
                 Block_CNN(nbIn=32, nbOut=32, usePadding=True, useBatchNorm=False, usePool=False),
                 Block_CNN(nbIn=32, nbOut=64, usePadding=True, useBatchNorm=False, usePool=False),
-                Block_FFD_Moe(nbIn=64, nbOut=64, nbExperts=nbExperts, topK=topK, fromCNN=True),
                 Block_CNN(nbIn=64, nbOut=128, usePadding=False, useBatchNorm=False, usePool=True),
-                Block_FFD_Moe(nbIn=128, nbOut=128, nbExperts=nbExperts, topK=topK, fromCNN=True),
+                Block_FFD_Moe(nbIn=128, nbOut=128, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
                 Block_CNN(nbIn=128, nbOut=192, usePadding=False, useBatchNorm=True, usePool=True),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (198 x 2 x 2)
                 torch.nn.Linear((192*2*2), nbClasses)])
@@ -277,9 +277,91 @@ class VisionModelMoe(torch.nn.Module):
                 Block_CNN(nbIn=64, nbOut=128, usePadding=True, useBatchNorm=True, usePool=True),
                 Block_CNN(nbIn=128, nbOut=128, usePadding=True, useBatchNorm=False, usePool=False),
                 Block_CNN(nbIn=128, nbOut=128, usePadding=True, useBatchNorm=False, usePool=False),
-                Block_FFD_Moe(nbIn=128, nbOut=128, nbExperts=nbExperts, topK=topK, fromCNN=True),
                 Block_CNN(nbIn=128, nbOut=256, usePadding=False, useBatchNorm=False, usePool=True),
-                Block_FFD_Moe(nbIn=256, nbOut=256, nbExperts=nbExperts, topK=topK, fromCNN=True),
+                Block_FFD_Moe(nbIn=256, nbOut=256, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=256, nbOut=256, usePadding=False, useBatchNorm=True, usePool=True),
+                torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (256 x 2 x 2)
+                torch.nn.Linear((256*2*2), nbClasses),])
+        else:
+            raise ValueError(f"unknown {modelConfig = }")
+    
+    @staticmethod
+    def get_cifar_v4(
+            nbClasses:int, nbExperts:int, topK:int,
+            modelConfig:typing.Literal["small", "medium", "large"],
+            wImp:float, wLoad:float, memoryMode:bool, dropout=0.25)->"VisionModelMoe":
+        """the V4 will use multiple MOE: before and rigth after the 2nd last CNN"""
+        if modelConfig == "small":
+            return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
+                Block_CNN(nbIn=3, nbOut=16, usePadding=True, useBatchNorm=False, usePool=True),
+                Block_CNN(nbIn=16, nbOut=24, usePadding=True, useBatchNorm=True, usePool=True),
+                Block_FFD_Moe(nbIn=24, nbOut=24, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=24, nbOut=32, usePadding=False, useBatchNorm=False, usePool=False),
+                Block_FFD_Moe(nbIn=32, nbOut=32, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=32, nbOut=48, usePadding=False, useBatchNorm=False, usePool=True),
+                torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (48 x 2 x 2)
+                torch.nn.Linear((48*2*2), nbClasses)])
+        elif modelConfig == "medium":
+            return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
+                Block_CNN(nbIn=3, nbOut=16, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=16, nbOut=32, usePadding=True, useBatchNorm=True, usePool=True),
+                Block_CNN(nbIn=32, nbOut=32, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=32, nbOut=64, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_FFD_Moe(nbIn=64, nbOut=64, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=64, nbOut=128, usePadding=False, useBatchNorm=False, usePool=True),
+                Block_FFD_Moe(nbIn=128, nbOut=128, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=128, nbOut=192, usePadding=False, useBatchNorm=True, usePool=True),
+                torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (198 x 2 x 2)
+                torch.nn.Linear((192*2*2), nbClasses)])
+        elif modelConfig == "large":
+            return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
+                Block_CNN(nbIn=3, nbOut=64, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=64, nbOut=128, usePadding=True, useBatchNorm=True, usePool=True),
+                Block_CNN(nbIn=128, nbOut=128, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=128, nbOut=128, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_FFD_Moe(nbIn=128, nbOut=128, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=128, nbOut=256, usePadding=False, useBatchNorm=False, usePool=True),
+                Block_FFD_Moe(nbIn=256, nbOut=256, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=256, nbOut=256, usePadding=False, useBatchNorm=True, usePool=True),
+                torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (256 x 2 x 2)
+                torch.nn.Linear((256*2*2), nbClasses),])
+        else:
+            raise ValueError(f"unknown {modelConfig = }")
+    
+    @staticmethod
+    def get_cifar_v5(
+            nbClasses:int, nbExperts:int, topK:int,
+            modelConfig:typing.Literal["small", "medium", "large"],
+            wImp:float, wLoad:float, memoryMode:bool, dropout=0.25)->"VisionModelMoe":
+        """the V5 will use multiple MOE: before the 2nd last CNN"""
+        if modelConfig == "small":
+            return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
+                Block_CNN(nbIn=3, nbOut=16, usePadding=True, useBatchNorm=False, usePool=True),
+                Block_CNN(nbIn=16, nbOut=24, usePadding=True, useBatchNorm=True, usePool=True),
+                Block_FFD_Moe(nbIn=24, nbOut=24, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=24, nbOut=32, usePadding=False, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=32, nbOut=48, usePadding=False, useBatchNorm=False, usePool=True),
+                torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (48 x 2 x 2)
+                torch.nn.Linear((48*2*2), nbClasses)])
+        elif modelConfig == "medium":
+            return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
+                Block_CNN(nbIn=3, nbOut=16, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=16, nbOut=32, usePadding=True, useBatchNorm=True, usePool=True),
+                Block_CNN(nbIn=32, nbOut=32, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=32, nbOut=64, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_FFD_Moe(nbIn=64, nbOut=64, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=64, nbOut=128, usePadding=False, useBatchNorm=False, usePool=True),
+                Block_CNN(nbIn=128, nbOut=192, usePadding=False, useBatchNorm=True, usePool=True),
+                torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (198 x 2 x 2)
+                torch.nn.Linear((192*2*2), nbClasses)])
+        elif modelConfig == "large":
+            return VisionModelMoe(nbClasses=nbClasses, wImp=wImp, wLoad=wLoad, blocks=[
+                Block_CNN(nbIn=3, nbOut=64, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=64, nbOut=128, usePadding=True, useBatchNorm=True, usePool=True),
+                Block_CNN(nbIn=128, nbOut=128, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_CNN(nbIn=128, nbOut=128, usePadding=True, useBatchNorm=False, usePool=False),
+                Block_FFD_Moe(nbIn=128, nbOut=128, nbExperts=nbExperts, topK=topK, fromCNN=True, memMode=memoryMode),
+                Block_CNN(nbIn=128, nbOut=256, usePadding=False, useBatchNorm=False, usePool=True),
                 Block_CNN(nbIn=256, nbOut=256, usePadding=False, useBatchNorm=True, usePool=True),
                 torch.nn.Dropout(dropout), torch.nn.Flatten(), # => (256 x 2 x 2)
                 torch.nn.Linear((256*2*2), nbClasses),])
