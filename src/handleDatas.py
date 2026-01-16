@@ -17,7 +17,7 @@ DATASETS_ROOT = pathlib.Path("D:/AI_datas")
 
 _DataAugmentation = Literal[None, "basic", "basic+degrade", ]
 ImageTransform = Callable[[Image.Image|torch.Tensor], torch.Tensor]
-_ImageNette_split = Literal["train", "val"]
+_ImageNet_split = Literal["train", "val"]
 _ImageNette_size = Literal["full", "320px", "160px"]
 
 
@@ -135,11 +135,12 @@ class HandleImagesClassifDatas(HandleClassifDatas):
     full_dataset: ImagesClassifDataset
     
     def __init__(self, images: list[tuple[Image.Image, ImageClass]], name: str,
-                 nbClasses: int, imagesCropSize:tuple[int, int], trainProp: float, 
+                 nbClasses: int, imagesCropSize:tuple[int, int], hasDiffSizes:bool, trainProp: float, 
                  batchSizeTrain: int, batchSizeTest: int, dataAugemnt:"_DataAugmentation") -> None:
         """setup the test/train split and their dataloader based on 
             a given set of images to use (consider that the index are alredy offsetted)"""
         self.imagesCropSize: tuple[int, int] = imagesCropSize
+        self.hasDiffSizes: bool = hasDiffSizes
         toTensor = [Transforms.ToImage(), Transforms.ToDtype(torch.float32, scale=True), ]
         norm = Transforms.Normalize(mean=[0.5]*3, std=[0.22]*3)
         crop = Transforms.CenterCrop(self.imagesCropSize)
@@ -147,21 +148,22 @@ class HandleImagesClassifDatas(HandleClassifDatas):
         basicTransforms = [
             Transforms.RandomHorizontalFlip(),
             Transforms.RandomRotation((-15, +15), interpolation=InterpolationMode.BILINEAR, fill=0),]
+        condResize = [_ for _ in [resizeCrop] if hasDiffSizes is False]
         if dataAugemnt is None:
             cachableTransform = Transforms.Compose([*toTensor, norm, crop])
             firstTransform = (lambda x:x)
             finalTransform = (lambda x:x)
         elif dataAugemnt == "basic":
             cachableTransform = Transforms.Compose(toTensor)
-            firstTransform = resizeCrop
-            finalTransform = Transforms.Compose([norm, *basicTransforms])
+            firstTransform = ((lambda x:x) if hasDiffSizes is False else resizeCrop)
+            finalTransform = Transforms.Compose([norm, *basicTransforms, *condResize])
         elif dataAugemnt == "basic+degrade":
             cachableTransform = Transforms.Compose(toTensor)
-            firstTransform = resizeCrop
+            firstTransform = ((lambda x:x) if hasDiffSizes is False else resizeCrop)
             finalTransform = Transforms.Compose([
                 Transforms.ColorJitter(
                     brightness=0.35, contrast=0.25, saturation=0.25, hue=0.03),
-                norm, *basicTransforms])
+                norm, *basicTransforms, *condResize])
         else: raise ValueError(f"unknown data augemntation: {dataAugemnt!r}")
         super().__init__(
             fullDataset=ImagesClassifDataset(
@@ -176,6 +178,7 @@ class HandleImagesClassifDatas(HandleClassifDatas):
               dataAugemnt:"_DataAugmentation")->"HandleImagesClassifDatas":
         lstImgCropSizes = [h.imagesCropSize for h in handlers]
         assert set(lstImgCropSizes) != 1, f"got different imagesCropSize: {lstImgCropSizes}"
+        hasDiffSizes = any(h.hasDiffSizes for h in handlers)
         imagesCropSize = lstImgCropSizes[0]
         allImages: list[tuple[Image.Image, ImageClass]] = []
         currentNbClasses: int = 0
@@ -187,9 +190,8 @@ class HandleImagesClassifDatas(HandleClassifDatas):
         return HandleImagesClassifDatas(
             images=allImages, nbClasses=currentNbClasses,
             name=f"Merged[{', '.join([dts.name for dts in handlers])}]",
-            trainProp=trainProp, imagesCropSize=imagesCropSize,
-            batchSizeTrain=batchSizeTrain, 
-            batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
+            trainProp=trainProp, imagesCropSize=imagesCropSize, hasDiffSizes=hasDiffSizes,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 
     
@@ -208,8 +210,8 @@ class MNIST_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name="MNIST", trainProp=trainProp, 
-            nbClasses=10, imagesCropSize=(28, 28), batchSizeTrain=batchSizeTrain,
-            batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
+            nbClasses=10, imagesCropSize=(28, 28), hasDiffSizes=False,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 
 class FashionMNIST_Datas(HandleImagesClassifDatas):
@@ -226,8 +228,8 @@ class FashionMNIST_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name="FashionMNIST", trainProp=trainProp, 
-            nbClasses=10, imagesCropSize=(32, 32), batchSizeTrain=batchSizeTrain, 
-            batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
+            nbClasses=10, imagesCropSize=(32, 32), hasDiffSizes=False,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 class Cifar10_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
@@ -243,8 +245,8 @@ class Cifar10_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name="Cifar10", trainProp=trainProp, 
-            nbClasses=10, imagesCropSize=(32, 32), batchSizeTrain=batchSizeTrain,
-            batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
+            nbClasses=10, imagesCropSize=(32, 32), hasDiffSizes=False,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 class Cifar100_Datas(HandleImagesClassifDatas):
     def __init__(self, fromTrainSource: bool|None, maxSamples: int | None,
@@ -260,14 +262,14 @@ class Cifar100_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name="Cifar100", trainProp=trainProp, 
-            nbClasses=100, imagesCropSize=(32, 32), batchSizeTrain=batchSizeTrain,
-            batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
+            nbClasses=100, imagesCropSize=(32, 32), hasDiffSizes=False,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
 class ImageNette_Datas(HandleImagesClassifDatas):
-    def __init__(self, fromTrainSource: "_ImageNette_split|None", size:"_ImageNette_size",
+    def __init__(self, fromTrainSource: "_ImageNet_split|None", size:"_ImageNette_size",
                  maxSamples:int|None, trainProp: float, batchSizeTrain: int, 
                  batchSizeTest: int, dataAugemnt:"_DataAugmentation"=None) -> None:
-        self.fromTrainSource: "_ImageNette_split|None" = fromTrainSource
+        self.fromTrainSource: "_ImageNet_split|None" = fromTrainSource
         imagesCropSize = {"full": (500, 500), "320px": (320, 320), "160px": (160, 160)}[size]
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in (("train", "val") if fromTrainSource is None else [fromTrainSource]):
@@ -279,26 +281,25 @@ class ImageNette_Datas(HandleImagesClassifDatas):
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
             images=images, name=f"imageNette({size})", trainProp=trainProp, 
-            nbClasses=10, imagesCropSize=imagesCropSize, batchSizeTrain=batchSizeTrain,
-            batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
+            nbClasses=10, imagesCropSize=imagesCropSize, hasDiffSizes=True,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
-class ImageNet_Datas(HandleImagesClassifDatas):
-    def __init__(self, fromTrainSource: "_ImageNette_split|None", size:"_ImageNette_size",
+class ImageNet1K_Datas(HandleImagesClassifDatas):
+    def __init__(self, fromTrainSource: "_ImageNet_split|None",
                  maxSamples:int|None, trainProp: float, batchSizeTrain: int, 
                  batchSizeTest: int, dataAugemnt:"_DataAugmentation"=None) -> None:
-        raise NotImplementedError
-        self.fromTrainSource: "_ImageNette_split|None" = fromTrainSource
-        imagesCropSize = {"full": (500, 500), "320px": (320, 320), "160px": (160, 160)}[size]
+        raise RuntimeError(f"it isn't addapeted to loading all the images at once (this approche)")
+        self.fromTrainSource: "_ImageNet_split|None" = fromTrainSource
+        imagesCropSize = (224, 224)
         images: list[tuple[Image.Image, ImageClass]] = []
         for src in (("train", "val") if fromTrainSource is None else [fromTrainSource]):
-            datas = torchvision.datasets.ImageNet(
-                DATASETS_ROOT, split=src, size=size, download=True)
+            datas = torchvision.datasets.ImageNet(DATASETS_ROOT.joinpath("ILSVRC2012"), split=src)
             for (img, clsIndex) in datas:
                 if (maxSamples is not None) and (len(images) >= maxSamples):
                     break
                 images.append((img, ImageClass(clsIndex)))
         super().__init__(
-            images=images, name=f"imageNette({size})", trainProp=trainProp, 
-            nbClasses=10, imagesCropSize=imagesCropSize, batchSizeTrain=batchSizeTrain,
-            batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
+            images=images, name=f"imageNet1K[{fromTrainSource}]", trainProp=trainProp,
+            hasDiffSizes=True, nbClasses=1000, imagesCropSize=imagesCropSize,
+            batchSizeTrain=batchSizeTrain, batchSizeTest=batchSizeTest, dataAugemnt=dataAugemnt)
 
