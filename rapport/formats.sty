@@ -10,18 +10,19 @@
 %********************************************************
 \setlength{\paperheight}{297mm}%
 \setlength{\paperwidth}{210mm}
-\evensidemargin -12.4mm \oddsidemargin 0mm
+\evensidemargin -12.4mm \oddsidemargin -12.4mm
 %\setlength\topmargin{0mm} \setlength\textheight{235.8mm}
-\setlength\topmargin{-5mm} \setlength\textheight{245.8mm}
-\setlength\textwidth{160mm} \setlength\columnsep{8mm}
+\setlength\topmargin{-12mm} \setlength\textheight{268mm}
+\setlength\textwidth{187mm} \setlength\columnsep{8mm}
 %\newlength\titlebox \setlength\titlebox{60.8mm}
-\newlength\titlebox \setlength\titlebox{44.8mm}
+\newlength\titlebox \setlength\titlebox{34.8mm}
 \setlength\headheight{0pt}   \setlength\headsep{0pt}
 %\setlength\footheight{0pt}   
 \setlength\footskip{0pt}
 %\setlength{\oddsidemargin}{4.9mm}
 \thispagestyle{empty}     \pagestyle{empty}
-\flushbottom\twocolumn\sloppy
+%%%\flushbottom\twocolumn\sloppy
+\flushbottom\onecolumn\sloppy
 
 \def\addcontentsline#1#2#3{}
 
@@ -29,7 +30,10 @@
  \begingroup
    \def\thefootnote{\fnsymbol{footnote}}
    \def\@makefnmark{\hbox to 0pt{$^{\@thefnmark}$\hss}}
-   \twocolumn[\@maketitle] \@thanks
+   %%%\twocolumn[\@maketitle] \@thanks
+   \onecolumn
+   \@maketitle
+   \@thanks
  \endgroup
  \setcounter{footnote}{0}
  \let\maketitle\relax \let\@maketitle\relax
